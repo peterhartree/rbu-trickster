@@ -1,0 +1,27 @@
+{
+  "name": "bridge-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Real-time multiplayer contract bridge web application",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently \"yarn workspace server dev\" \"yarn workspace client dev\"",
+    "dev:server": "yarn workspace server dev",
+    "dev:client": "yarn workspace client dev",
+    "build": "yarn workspace shared build && yarn workspace server build && yarn workspace client build",
+    "build:server": "yarn workspace server build",
+    "build:client": "yarn workspace client build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  }
+}
