@@ -5,17 +5,24 @@ import type {
   GamePhase,
   BidAction,
   Card,
+  BidCall,
 } from '@bridge/shared';
 import { Position as Pos, GamePhase as Phase } from '@bridge/shared';
+import { dealCards, getNextPosition } from '../domain/cards/deck.js';
+import { gameReducer } from '../domain/game-state/reducer.js';
+import { HandHistory } from './HandHistory.js';
 
 export class GameRoom {
   public roomId: string;
   public players: Partial<Record<Position, Player>> = {};
   private gameState: GameState;
   private lastActivity: number = Date.now();
+  private handHistory: HandHistory;
+  private gameStartTime: number = 0;
 
   constructor(roomId: string) {
     this.roomId = roomId;
+    this.handHistory = new HandHistory();
     this.gameState = {
       roomId,
       phase: Phase.WAITING,
@@ -67,11 +74,17 @@ export class GameRoom {
       throw new Error('Need 4 players to start');
     }
 
-    // TODO: Implement actual game start logic (deal cards, etc.)
-    // For now, just transition to bidding phase
-    this.gameState.phase = Phase.BIDDING;
-    this.lastActivity = Date.now();
+    // Deal cards starting with North as dealer
+    const deal = dealCards(Pos.NORTH);
 
+    // Use reducer to transition to bidding phase
+    this.gameState = gameReducer(this.gameState, {
+      type: 'DEAL_CARDS',
+      deal,
+    });
+
+    this.gameStartTime = Date.now();
+    this.lastActivity = Date.now();
     return this.gameState;
   }
 
@@ -81,9 +94,19 @@ export class GameRoom {
       throw new Error('Player not in room');
     }
 
-    // TODO: Implement bid validation and state update
-    this.lastActivity = Date.now();
+    const bidCall: BidCall = {
+      position,
+      action: bid,
+      timestamp: Date.now(),
+    };
 
+    // Use reducer to handle bid
+    this.gameState = gameReducer(this.gameState, {
+      type: 'MAKE_BID',
+      bid: bidCall,
+    });
+
+    this.lastActivity = Date.now();
     return { gameState: this.gameState, position };
   }
 
@@ -93,10 +116,44 @@ export class GameRoom {
       throw new Error('Player not in room');
     }
 
-    // TODO: Implement card play validation and state update
-    this.lastActivity = Date.now();
+    // Store trick count before playing card
+    const tricksBeforePlay = this.gameState.cardPlay?.tricks.length || 0;
 
-    return { gameState: this.gameState, position, trickComplete: false };
+    // Use reducer to handle card play
+    this.gameState = gameReducer(this.gameState, {
+      type: 'PLAY_CARD',
+      card,
+      position,
+    });
+
+    // Check if trick was completed
+    const tricksAfterPlay = this.gameState.cardPlay?.tricks.length || 0;
+    const trickComplete = tricksAfterPlay > tricksBeforePlay;
+
+    // Check if hand is complete and store history
+    if (this.gameState.phase === Phase.COMPLETE && this.gameState.result && this.gameState.score && this.gameState.deal && this.gameState.bidding && this.gameState.cardPlay) {
+      const duration = Date.now() - this.gameStartTime;
+
+      this.handHistory.storeHand(
+        this.gameState.deal,
+        this.gameState.bidding,
+        this.gameState.cardPlay.tricks,
+        this.gameState.result,
+        this.gameState.score,
+        {
+          players: {
+            north: this.players[Pos.NORTH]?.id || 'North',
+            east: this.players[Pos.EAST]?.id || 'East',
+            south: this.players[Pos.SOUTH]?.id || 'South',
+            west: this.players[Pos.WEST]?.id || 'West',
+          },
+          duration,
+        }
+      );
+    }
+
+    this.lastActivity = Date.now();
+    return { gameState: this.gameState, position, trickComplete };
   }
 
   handleDisconnect(socketId: string) {
@@ -108,21 +165,46 @@ export class GameRoom {
   }
 
   getStateForPlayer(position: Position): Partial<GameState> {
-    // Return filtered state (only show player's own hand until dummy is exposed)
+    // Return filtered state based on game phase
+    const isDummy = this.gameState.cardPlay?.dummy === position;
+    const isDeclarer = this.gameState.cardPlay?.declarer === position;
+    const dummyPosition = this.gameState.cardPlay?.dummy;
+    const showDummy = this.gameState.phase === Phase.PLAYING && dummyPosition;
+
     return {
       ...this.gameState,
       hands: {
-        [Pos.NORTH]: position === Pos.NORTH ? this.gameState.hands[Pos.NORTH] : [],
-        [Pos.SOUTH]: position === Pos.SOUTH ? this.gameState.hands[Pos.SOUTH] : [],
-        [Pos.EAST]: position === Pos.EAST ? this.gameState.hands[Pos.EAST] : [],
-        [Pos.WEST]: position === Pos.WEST ? this.gameState.hands[Pos.WEST] : [],
+        [Pos.NORTH]:
+          position === Pos.NORTH || (showDummy && dummyPosition === Pos.NORTH)
+            ? this.gameState.hands[Pos.NORTH]
+            : [],
+        [Pos.SOUTH]:
+          position === Pos.SOUTH || (showDummy && dummyPosition === Pos.SOUTH)
+            ? this.gameState.hands[Pos.SOUTH]
+            : [],
+        [Pos.EAST]:
+          position === Pos.EAST || (showDummy && dummyPosition === Pos.EAST)
+            ? this.gameState.hands[Pos.EAST]
+            : [],
+        [Pos.WEST]:
+          position === Pos.WEST || (showDummy && dummyPosition === Pos.WEST)
+            ? this.gameState.hands[Pos.WEST]
+            : [],
       },
     };
+  }
+
+  getFullState(): GameState {
+    return this.gameState;
   }
 
   isInactive(): boolean {
     // Consider room inactive if no activity for 30 minutes
     const INACTIVE_THRESHOLD = 30 * 60 * 1000;
     return Date.now() - this.lastActivity > INACTIVE_THRESHOLD;
+  }
+
+  getHandHistory() {
+    return this.handHistory;
   }
 }

@@ -297,3 +297,79 @@ export interface HandRecord {
   score: DuplicateScore;
   metadata: HandMetadata;
 }
+
+// ============================================================================
+// SAYC Convention Types
+// ============================================================================
+
+export interface PointRange {
+  min: number;
+  max: number;
+}
+
+export interface SuitRequirement {
+  suit: Suit;
+  minLength: number;
+  maxLength?: number;
+  minHonours?: number; // Number of top honours (A, K, Q)
+}
+
+export interface ShapeRequirement {
+  balanced?: boolean; // 4-3-3-3, 4-4-3-2, 5-3-3-2
+  semiBalanced?: boolean; // 5-4-2-2, 6-3-2-2
+  unbalanced?: boolean;
+  pattern?: string; // e.g., "5-4-3-1", "6-4-2-1"
+}
+
+export interface BidRequirement {
+  hcp: PointRange;
+  totalPoints?: PointRange; // HCP + distribution points
+  suits?: SuitRequirement[];
+  shape?: ShapeRequirement;
+  stoppers?: Suit[]; // For NT bids
+}
+
+export enum BidCategory {
+  OPENING = 'opening',
+  RESPONSE = 'response',
+  REBID = 'rebid',
+  COMPETITIVE = 'competitive',
+  DEFENSIVE = 'defensive',
+  CONVENTIONAL = 'conventional',
+}
+
+export interface BidMeaning {
+  bidSequence: string; // e.g., "1C", "1NT-2C", "1H-2D-2NT"
+  description: string;
+  requirements: BidRequirement;
+  forcing: boolean;
+  gameForcing?: boolean;
+  responses?: BidMeaning[];
+  category: BidCategory;
+  alertable?: boolean;
+  notes?: string;
+}
+
+export interface SAYCConventions {
+  openingBids: BidMeaning[];
+  responses: BidMeaning[];
+  rebids: BidMeaning[];
+  competitiveBids: BidMeaning[];
+  conventionalBids: BidMeaning[];
+  leadConventions: LeadConvention[];
+  defensiveSignals: DefensiveSignal[];
+}
+
+export interface LeadConvention {
+  name: string;
+  description: string;
+  situation: string; // "Opening lead vs NT", "Opening lead vs suit", etc.
+  rules: string[];
+}
+
+export interface DefensiveSignal {
+  name: string;
+  description: string;
+  type: 'attitude' | 'count' | 'suit-preference';
+  rules: string[];
+}

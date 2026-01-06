@@ -5,13 +5,13 @@ import type { Position, BidAction, Card, GameState } from '@bridge/shared';
 export class GameManager {
   private rooms: Map<string, GameRoom> = new Map();
 
-  createRoom(socketId: string): { roomId: string; position: Position } {
+  createRoom(): { roomId: string } {
     const roomId = nanoid(8);
     const room = new GameRoom(roomId);
     this.rooms.set(roomId, room);
 
-    const position = room.addPlayer(socketId);
-    return { roomId, position };
+    // Don't add player here - they'll join via room:join after navigation
+    return { roomId };
   }
 
   joinRoom(roomId: string, socketId: string) {

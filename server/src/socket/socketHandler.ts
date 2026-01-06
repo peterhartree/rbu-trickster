@@ -5,6 +5,9 @@ import type { Position, BidAction, Card } from '@bridge/shared';
 
 const gameManager = new GameManager();
 
+// Export gameManager for use in Express routes
+export { gameManager };
+
 export function setupSocketHandlers(io: Server) {
   io.on(SOCKET_EVENTS.CONNECTION, (socket: Socket) => {
     console.log(`✅ Client connected: ${socket.id}`);
@@ -12,11 +15,10 @@ export function setupSocketHandlers(io: Server) {
     // Create room
     socket.on(SOCKET_EVENTS.ROOM_CREATE, (callback) => {
       try {
-        const { roomId, position } = gameManager.createRoom(socket.id);
-        socket.join(roomId);
-
-        callback({ roomId, position });
-        console.log(`🎲 Room created: ${roomId}, player position: ${position}`);
+        const { roomId } = gameManager.createRoom();
+        // Don't join socket room here - player will join via room:join after navigation
+        callback({ roomId });
+        console.log(`🎲 Room created: ${roomId}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to create room';
         socket.emit(SOCKET_EVENTS.ROOM_ERROR, { message });
@@ -29,8 +31,8 @@ export function setupSocketHandlers(io: Server) {
         const { position, players } = gameManager.joinRoom(roomId, socket.id);
         socket.join(roomId);
 
-        // Notify joiner
-        callback({ success: true, position });
+        // Notify joiner - include players count
+        callback({ success: true, position, players });
 
         // Notify others in room
         socket.to(roomId).emit(SOCKET_EVENTS.ROOM_PLAYER_JOINED, {
@@ -48,21 +50,17 @@ export function setupSocketHandlers(io: Server) {
     // Start game
     socket.on(SOCKET_EVENTS.GAME_START, ({ roomId }) => {
       try {
-        const gameState = gameManager.startGame(roomId);
-
-        // Send full state to all players (with their respective hands)
+        gameManager.startGame(roomId);
         const room = gameManager.getRoom(roomId);
+
         if (room) {
+          // Send filtered state to each player
           for (const position of Object.keys(room.players)) {
             const playerPosition = position as Position;
             const player = room.players[playerPosition];
             if (player) {
               const filteredState = room.getStateForPlayer(playerPosition);
-              io.to(player.socketId).emit(SOCKET_EVENTS.GAME_STARTED, {
-                hands: { [playerPosition]: gameState.hands[playerPosition] },
-                dealer: gameState.dealer,
-                gameState: filteredState,
-              });
+              io.to(player.socketId).emit(SOCKET_EVENTS.GAME_STARTED, filteredState);
             }
           }
         }
@@ -77,14 +75,24 @@ export function setupSocketHandlers(io: Server) {
     // Place bid
     socket.on(SOCKET_EVENTS.BID_PLACE, ({ roomId, bid }: { roomId: string; bid: BidAction }) => {
       try {
-        const { gameState, position } = gameManager.placeBid(roomId, socket.id, bid);
+        const { position } = gameManager.placeBid(roomId, socket.id, bid);
+        const room = gameManager.getRoom(roomId);
 
-        // Broadcast updated state to all players
-        io.to(roomId).emit(SOCKET_EVENTS.BID_MADE, {
-          position,
-          bid,
-          gameState,
-        });
+        if (room) {
+          // Send filtered state to each player
+          for (const pos of Object.keys(room.players)) {
+            const playerPosition = pos as Position;
+            const player = room.players[playerPosition];
+            if (player) {
+              const filteredState = room.getStateForPlayer(playerPosition);
+              io.to(player.socketId).emit(SOCKET_EVENTS.BID_MADE, {
+                position,
+                bid,
+                gameState: filteredState,
+              });
+            }
+          }
+        }
 
         console.log(`🎺 Bid placed in room ${roomId}: ${position} - ${bid.type}`);
       } catch (error) {
@@ -96,26 +104,42 @@ export function setupSocketHandlers(io: Server) {
     // Play card
     socket.on(SOCKET_EVENTS.CARD_PLAY, ({ roomId, card }: { roomId: string; card: Card }) => {
       try {
-        const { gameState, position, trickComplete } = gameManager.playCard(
-          roomId,
-          socket.id,
-          card
-        );
+        const { position, trickComplete } = gameManager.playCard(roomId, socket.id, card);
+        const room = gameManager.getRoom(roomId);
 
-        // Broadcast card played
-        io.to(roomId).emit(SOCKET_EVENTS.CARD_PLAYED, {
-          position,
-          card,
-          gameState,
-        });
+        if (room) {
+          const fullState = room.getFullState();
 
-        // If trick is complete, notify
-        if (trickComplete) {
-          const trick = gameState.cardPlay?.currentTrick;
-          io.to(roomId).emit(SOCKET_EVENTS.TRICK_COMPLETE, {
-            winner: trick?.winner,
-            gameState,
-          });
+          // Send filtered state to each player
+          for (const pos of Object.keys(room.players)) {
+            const playerPosition = pos as Position;
+            const player = room.players[playerPosition];
+            if (player) {
+              const filteredState = room.getStateForPlayer(playerPosition);
+              io.to(player.socketId).emit(SOCKET_EVENTS.CARD_PLAYED, {
+                position,
+                card,
+                gameState: filteredState,
+              });
+
+              // If trick is complete, send trick complete event
+              if (trickComplete) {
+                const lastTrick = fullState.cardPlay?.tricks[fullState.cardPlay.tricks.length - 1];
+                io.to(player.socketId).emit(SOCKET_EVENTS.TRICK_COMPLETE, {
+                  winner: lastTrick?.winner,
+                  gameState: filteredState,
+                });
+              }
+            }
+          }
+
+          // If hand is complete, send hand complete event
+          if (fullState.phase === 'complete' && fullState.score) {
+            io.to(roomId).emit(SOCKET_EVENTS.HAND_COMPLETE, {
+              score: fullState.score,
+              result: fullState.result,
+            });
+          }
         }
 
         console.log(`🃏 Card played in room ${roomId}: ${position} - ${card.rank}${card.suit}`);

@@ -9,12 +9,12 @@
     "client"
   ],
   "scripts": {
-    "dev": "concurrently \"yarn workspace server dev\" \"yarn workspace client dev\"",
-    "dev:server": "yarn workspace server dev",
-    "dev:client": "yarn workspace client dev",
-    "build": "yarn workspace shared build && yarn workspace server build && yarn workspace client build",
-    "build:server": "yarn workspace server build",
-    "build:client": "yarn workspace client build"
+    "dev": "concurrently \"yarn workspace @bridge/server dev\" \"yarn workspace @bridge/client dev\"",
+    "dev:server": "yarn workspace @bridge/server dev",
+    "dev:client": "yarn workspace @bridge/client dev",
+    "build": "yarn workspace @bridge/shared build && yarn workspace @bridge/server build && yarn workspace @bridge/client build",
+    "build:server": "yarn workspace @bridge/server build",
+    "build:client": "yarn workspace @bridge/client build"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
