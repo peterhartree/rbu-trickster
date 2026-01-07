@@ -102,18 +102,18 @@ function GameRoom() {
   };
 
   if (!roomId) {
-    return <div className="p-4">Invalid room ID</div>;
+    return <div className="p-4 text-deco-cream">Invalid room ID</div>;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-800 to-red-900 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-          <h1 className="text-2xl font-bold text-red-800 mb-4">Error</h1>
-          <p className="text-gray-700 mb-6">{error}</p>
+      <div className="min-h-screen bg-deco-navy flex items-center justify-center p-4">
+        <div className="bg-deco-midnight rounded-lg shadow-deco-lg p-8 max-w-md w-full border border-deco-gold/20 deco-corner">
+          <h1 className="text-2xl font-display font-bold text-deco-gold mb-4">Error</h1>
+          <p className="text-deco-cream/80 mb-6">{error}</p>
           <button
             onClick={() => setError(null)}
-            className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded transition-colors"
+            className="w-full bg-deco-gold hover:bg-deco-gold-light text-deco-navy font-semibold py-3 px-6 rounded transition-colors"
           >
             Dismiss
           </button>
@@ -135,45 +135,57 @@ function GameRoom() {
     );
   }
 
-  // Game in progress
+  // Game in progress - Art Deco design
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-br from-table-dark to-table-felt flex flex-col p-2">
-      {/* Header - shrink-0 */}
-      <header className="shrink-0 bg-white/95 backdrop-blur rounded-lg shadow-lg px-4 py-2 mb-2">
+    <div className="h-screen overflow-hidden bg-deco-navy flex flex-col p-3">
+      {/* Art Deco Header */}
+      <header className="shrink-0 bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 px-5 py-3 mb-3">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-table-felt">Contract Bridge</h1>
-            <p className="text-xs text-gray-600">
-              Room: <span className="font-mono">{roomId}</span>
-            </p>
+          <div className="flex items-center space-x-4">
+            {/* Decorative element */}
+            <div className="hidden sm:flex items-center space-x-1">
+              <div className="w-2 h-2 bg-deco-gold rotate-45" />
+              <div className="w-1 h-6 bg-gradient-to-b from-deco-gold to-transparent" />
+            </div>
+            <div>
+              <h1 className="text-xl font-display font-bold text-deco-gold tracking-wide">
+                Contract Bridge
+              </h1>
+              <p className="text-xs text-deco-cream/60 tracking-widest uppercase">
+                Room <span className="font-mono text-deco-gold/80">{roomId}</span>
+              </p>
+            </div>
           </div>
+
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setShowHandHistory(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-1.5 px-3 rounded transition-colors"
+              className="bg-deco-accent hover:bg-deco-accent/80 text-deco-cream text-sm font-semibold py-1.5 px-4 rounded border border-deco-gold/20 transition-colors"
             >
               History
             </button>
             <button
               onClick={() => setShowSAYCReference(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1.5 px-3 rounded transition-colors"
+              className="bg-deco-accent hover:bg-deco-accent/80 text-deco-cream text-sm font-semibold py-1.5 px-4 rounded border border-deco-gold/20 transition-colors"
             >
               SAYC
             </button>
-            <div className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-2 px-3 py-1.5 bg-deco-navy/50 rounded border border-deco-gold/10">
               <div
-                className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+                className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}
               />
-              <span className="text-xs text-gray-600">
-                {isConnected ? 'Connected' : 'Disconnected'}
+              <span className="text-xs text-deco-cream/60">
+                {isConnected ? 'Live' : 'Offline'}
               </span>
             </div>
           </div>
         </div>
+        {/* Gold underline accent */}
+        <div className="mt-3 h-px bg-gradient-to-r from-transparent via-deco-gold/40 to-transparent" />
       </header>
 
-      {/* Main game area - flex-1 min-h-0 */}
-      <main className="flex-1 min-h-0 grid grid-cols-12 gap-2">
+      {/* Main game area */}
+      <main className="flex-1 min-h-0 grid grid-cols-12 gap-3">
         {/* Left column: Bidding/Score (3 cols) */}
         <div className="col-span-3 overflow-y-auto">
           {gameState.phase === 'bidding' && (
@@ -199,9 +211,9 @@ function GameRoom() {
         </div>
       </main>
 
-      {/* Footer: Player's hand - shrink-0 */}
+      {/* Footer: Player's hand */}
       {myPosition && gameState.hands && (
-        <footer className="shrink-0 mt-2">
+        <footer className="shrink-0 mt-3">
           <PlayerHand
             hand={gameState.hands[myPosition] || []}
             myPosition={myPosition}

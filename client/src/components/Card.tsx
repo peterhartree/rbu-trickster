@@ -8,20 +8,22 @@ interface CardProps {
   size?: 'sm' | 'md' | 'lg';
   elevated?: boolean;
   faceDown?: boolean;
+  rotation?: number;
+  animationDelay?: number;
 }
 
 const suitSymbols: Record<Suit, string> = {
-  [S.SPADES]: '♠',
-  [S.HEARTS]: '♥',
-  [S.DIAMONDS]: '♦',
-  [S.CLUBS]: '♣',
+  [S.SPADES]: '\u2660',
+  [S.HEARTS]: '\u2665',
+  [S.DIAMONDS]: '\u2666',
+  [S.CLUBS]: '\u2663',
 };
 
 const suitColors: Record<Suit, string> = {
-  [S.SPADES]: 'text-card-spade',
-  [S.HEARTS]: 'text-card-heart',
-  [S.DIAMONDS]: 'text-card-diamond',
-  [S.CLUBS]: 'text-card-club',
+  [S.SPADES]: 'text-deco-spade',
+  [S.HEARTS]: 'text-deco-heart',
+  [S.DIAMONDS]: 'text-deco-diamond',
+  [S.CLUBS]: 'text-deco-club',
 };
 
 const rankDisplay: Record<Rank, string> = {
@@ -43,55 +45,46 @@ const rankDisplay: Record<Rank, string> = {
 const sizeClasses = {
   sm: {
     card: 'w-10 h-14',
-    rank: 'text-xs',
+    rank: 'text-xs font-display font-bold',
     suit: 'text-[10px]',
-    pip: 'top-0.5 left-0.5',
-    pipBottom: 'bottom-0.5 right-0.5',
+    pip: 'top-0.5 left-1',
+    pipBottom: 'bottom-0.5 right-1',
+    centreSuit: 'text-xl',
   },
   md: {
     card: 'w-14 h-20',
-    rank: 'text-sm font-bold',
+    rank: 'text-sm font-display font-bold',
     suit: 'text-xs',
-    pip: 'top-1 left-1',
-    pipBottom: 'bottom-1 right-1',
+    pip: 'top-1 left-1.5',
+    pipBottom: 'bottom-1 right-1.5',
+    centreSuit: 'text-3xl',
   },
   lg: {
     card: 'w-20 h-28',
-    rank: 'text-lg font-bold',
+    rank: 'text-lg font-display font-bold',
     suit: 'text-base',
-    pip: 'top-1.5 left-1.5',
-    pipBottom: 'bottom-1.5 right-1.5',
+    pip: 'top-1.5 left-2',
+    pipBottom: 'bottom-1.5 right-2',
+    centreSuit: 'text-4xl',
   },
 };
 
-function Card({ card, onClick, disabled = false, size = 'md', elevated = false, faceDown = false }: CardProps) {
+function Card({
+  card,
+  onClick,
+  disabled = false,
+  size = 'md',
+  elevated = false,
+  faceDown = false,
+  rotation = 0,
+  animationDelay = 0,
+}: CardProps) {
   const classes = sizeClasses[size];
   const colorClass = suitColors[card.suit];
 
   const isInteractive = onClick && !disabled;
 
-  const baseClasses = `
-    ${classes.card}
-    relative
-    bg-white
-    rounded-lg
-    border border-gray-200
-    select-none
-    transition-all duration-150
-  `;
-
-  const elevationClasses = elevated
-    ? 'shadow-lg'
-    : 'shadow-md';
-
-  const interactiveClasses = isInteractive
-    ? 'cursor-pointer hover:-translate-y-1 hover:shadow-xl card-glow'
-    : '';
-
-  const disabledClasses = disabled
-    ? 'opacity-50 cursor-not-allowed'
-    : '';
-
+  // Art Deco card back design
   if (faceDown) {
     return (
       <div
@@ -99,25 +92,36 @@ function Card({ card, onClick, disabled = false, size = 'md', elevated = false, 
           ${classes.card}
           relative
           rounded-lg
-          border border-gray-300
-          shadow-md
           select-none
-          bg-gradient-to-br from-blue-800 to-blue-900
+          bg-gradient-to-br from-deco-navy to-deco-midnight
+          border border-deco-gold/40
+          shadow-deco
         `}
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          animationDelay: `${animationDelay}ms`,
+        }}
       >
-        {/* Card back pattern */}
-        <div className="absolute inset-1 rounded border border-blue-600/30">
-          <div className="w-full h-full bg-blue-700/20 rounded"
-               style={{
-                 backgroundImage: `repeating-linear-gradient(
-                   45deg,
-                   transparent,
-                   transparent 4px,
-                   rgba(255,255,255,0.05) 4px,
-                   rgba(255,255,255,0.05) 8px
-                 )`
-               }}
+        {/* Art Deco pattern on back */}
+        <div className="absolute inset-1 rounded border border-deco-gold/20">
+          <div
+            className="w-full h-full rounded"
+            style={{
+              backgroundImage: `
+                repeating-linear-gradient(
+                  45deg,
+                  transparent,
+                  transparent 3px,
+                  rgba(212, 175, 55, 0.1) 3px,
+                  rgba(212, 175, 55, 0.1) 6px
+                )
+              `,
+            }}
           />
+          {/* Centre ornament */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-6 h-6 border border-deco-gold/30 rotate-45" />
+          </div>
         </div>
       </div>
     );
@@ -127,12 +131,29 @@ function Card({ card, onClick, disabled = false, size = 'md', elevated = false, 
     <div
       onClick={isInteractive ? onClick : undefined}
       className={`
-        ${baseClasses}
-        ${elevationClasses}
-        ${interactiveClasses}
-        ${disabledClasses}
+        ${classes.card}
+        relative
+        rounded-lg
+        select-none
+        transition-all duration-200
+        bg-deco-cream
+        border border-deco-gold/30
+        ${elevated ? 'shadow-deco-lg' : 'shadow-deco'}
+        ${isInteractive
+          ? 'cursor-pointer hover:-translate-y-2 hover:shadow-gold card-glow fan-card'
+          : ''
+        }
+        ${disabled ? 'opacity-60 cursor-not-allowed' : ''}
+        card-entrance
       `}
+      style={{
+        transform: `rotate(${rotation}deg)`,
+        animationDelay: `${animationDelay}ms`,
+      }}
     >
+      {/* Inner gold border accent */}
+      <div className="absolute inset-[2px] rounded-md border border-deco-gold/10 pointer-events-none" />
+
       {/* Top-left pip */}
       <div className={`absolute ${classes.pip} flex flex-col items-center leading-none ${colorClass}`}>
         <span className={classes.rank}>{rankDisplay[card.rank]}</span>
@@ -141,7 +162,7 @@ function Card({ card, onClick, disabled = false, size = 'md', elevated = false, 
 
       {/* Centre suit (large) */}
       <div className={`absolute inset-0 flex items-center justify-center ${colorClass}`}>
-        <span className={size === 'sm' ? 'text-xl' : size === 'md' ? 'text-3xl' : 'text-4xl'}>
+        <span className={`${classes.centreSuit} opacity-90`}>
           {suitSymbols[card.suit]}
         </span>
       </div>
