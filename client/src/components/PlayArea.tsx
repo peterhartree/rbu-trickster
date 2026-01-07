@@ -1,4 +1,4 @@
-import type { Position, GameState } from '@bridge/shared';
+import type { Position, GameState, Card as CardType } from '@bridge/shared';
 import { Position as Pos } from '@bridge/shared';
 import Card from './Card';
 
@@ -16,6 +16,17 @@ const positionNames: Record<Position, string> = {
 
 function PlayArea({ gameState, myPosition }: PlayAreaProps) {
   const currentTrick = gameState.cardPlay?.currentTrick;
+  const dummyPosition = gameState.cardPlay?.dummy;
+
+  // Get dummy's hand if visible (not our own hand - that's shown in PlayerHand)
+  const dummyHand: CardType[] | null =
+    dummyPosition &&
+    dummyPosition !== myPosition &&
+    gameState.hands &&
+    gameState.hands[dummyPosition] &&
+    gameState.hands[dummyPosition].length > 0
+      ? gameState.hands[dummyPosition]
+      : null;
 
   // Position layout for compass display
   const getPositionStyle = (position: Position) => {
@@ -96,6 +107,30 @@ function PlayArea({ gameState, myPosition }: PlayAreaProps) {
           );
         })}
       </div>
+
+      {/* Dummy's hand display */}
+      {dummyHand && dummyPosition && (
+        <div className="shrink-0 px-2 pb-2">
+          <div className="bg-deco-accent/20 rounded-lg p-3 border border-deco-gold/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-deco-gold tracking-widest uppercase">
+                Dummy ({positionNames[dummyPosition]})
+              </span>
+              <span className="text-xs text-deco-cream/50">{dummyHand.length} cards</span>
+            </div>
+            <div className="flex flex-wrap justify-center gap-1">
+              {dummyHand.map((card) => (
+                <Card
+                  key={`${card.suit}-${card.rank}`}
+                  card={card}
+                  size="sm"
+                  disabled
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tricks won - Art Deco style */}
       {gameState.cardPlay && (

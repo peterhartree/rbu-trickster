@@ -143,7 +143,7 @@ function Card({
           ? 'cursor-pointer hover:-translate-y-2 hover:shadow-gold card-glow fan-card'
           : ''
         }
-        ${disabled ? 'opacity-60 cursor-not-allowed' : ''}
+        ${disabled ? 'cursor-not-allowed' : ''}
         card-entrance
       `}
       style={{
@@ -151,6 +151,11 @@ function Card({
         animationDelay: `${animationDelay}ms`,
       }}
     >
+      {/* Dark overlay when disabled (card stays fully opaque) */}
+      {disabled && (
+        <div className="absolute inset-0 rounded-lg bg-deco-navy/40 pointer-events-none z-10" />
+      )}
+
       {/* Inner gold border accent */}
       <div className="absolute inset-[2px] rounded-md border border-deco-gold/10 pointer-events-none" />
 
