@@ -133,18 +133,53 @@ export function setupSocketHandlers(io: Server) {
             }
           }
 
-          // If hand is complete, send hand complete event
+          // If hand is complete, send hand complete event with full filtered state
           if (fullState.phase === 'complete' && fullState.score) {
-            io.to(roomId).emit(SOCKET_EVENTS.HAND_COMPLETE, {
-              score: fullState.score,
-              result: fullState.result,
-            });
+            for (const pos of Object.keys(room.players)) {
+              const playerPosition = pos as Position;
+              const player = room.players[playerPosition];
+              if (player) {
+                const filteredState = room.getStateForPlayer(playerPosition);
+                io.to(player.socketId).emit(SOCKET_EVENTS.HAND_COMPLETE, {
+                  score: fullState.score,
+                  result: fullState.result,
+                  gameState: filteredState,
+                });
+              }
+            }
           }
         }
 
         console.log(`🃏 Card played in room ${roomId}: ${position} - ${card.rank}${card.suit}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to play card';
+        socket.emit(SOCKET_EVENTS.ROOM_ERROR, { message });
+      }
+    });
+
+    // New hand (after review)
+    socket.on(SOCKET_EVENTS.GAME_NEW_HAND, ({ roomId }) => {
+      try {
+        const room = gameManager.getRoom(roomId);
+        if (!room) {
+          throw new Error('Room not found');
+        }
+
+        room.dealNewHand();
+
+        // Send filtered state to each player
+        for (const pos of Object.keys(room.players)) {
+          const playerPosition = pos as Position;
+          const player = room.players[playerPosition];
+          if (player) {
+            const filteredState = room.getStateForPlayer(playerPosition);
+            io.to(player.socketId).emit(SOCKET_EVENTS.GAME_STARTED, filteredState);
+          }
+        }
+
+        console.log(`🃏 New hand dealt in room ${roomId}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to deal new hand';
         socket.emit(SOCKET_EVENTS.ROOM_ERROR, { message });
       }
     });

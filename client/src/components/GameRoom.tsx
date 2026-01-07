@@ -10,6 +10,7 @@ import ScoreBoard from './ScoreBoard';
 import SAYCReference from './SAYCReference';
 import HandHistory from './HandHistory';
 import TurnIndicator from './TurnIndicator';
+import HandReview from './HandReview';
 
 const SOCKET_URL = 'http://localhost:3001';
 
@@ -66,7 +67,12 @@ function GameRoom() {
     });
 
     newSocket.on('hand:complete', (data: any) => {
-      setGameState((prev) => ({ ...prev, score: data.score, result: data.result }));
+      // Update with full game state including originalHands for review
+      if (data.gameState) {
+        setGameState(data.gameState);
+      } else {
+        setGameState((prev) => ({ ...prev, score: data.score, result: data.result }));
+      }
     });
 
     newSocket.on('room:error', (data: any) => {
@@ -98,6 +104,12 @@ function GameRoom() {
   const handlePlayCard = (card: Card) => {
     if (socket && roomId) {
       socket.emit('card:play', { roomId, card });
+    }
+  };
+
+  const handleNewHand = () => {
+    if (socket && roomId) {
+      socket.emit('game:new-hand', { roomId });
     }
   };
 
@@ -186,33 +198,42 @@ function GameRoom() {
 
       {/* Main game area */}
       <main className="flex-1 min-h-0 grid grid-cols-12 gap-3">
-        {/* Left column: Bidding/Score (3 cols) */}
-        <div className="col-span-3 overflow-y-auto">
-          {gameState.phase === 'bidding' && (
-            <BiddingPanel
-              gameState={gameState}
-              myPosition={myPosition}
-              onPlaceBid={handlePlaceBid}
-            />
-          )}
-          {(gameState.phase === 'playing' || gameState.phase === 'complete') && (
-            <ScoreBoard gameState={gameState} />
-          )}
-        </div>
+        {gameState.phase === 'complete' ? (
+          /* Hand Review - full width when complete */
+          <div className="col-span-12">
+            <HandReview gameState={gameState} onNewHand={handleNewHand} />
+          </div>
+        ) : (
+          <>
+            {/* Left column: Bidding/Score (3 cols) */}
+            <div className="col-span-3 overflow-y-auto">
+              {gameState.phase === 'bidding' && (
+                <BiddingPanel
+                  gameState={gameState}
+                  myPosition={myPosition}
+                  onPlaceBid={handlePlaceBid}
+                />
+              )}
+              {gameState.phase === 'playing' && (
+                <ScoreBoard gameState={gameState} />
+              )}
+            </div>
 
-        {/* Centre column: Play area (6 cols) */}
-        <div className="col-span-6">
-          <PlayArea gameState={gameState} myPosition={myPosition} />
-        </div>
+            {/* Centre column: Play area (6 cols) */}
+            <div className="col-span-6">
+              <PlayArea gameState={gameState} myPosition={myPosition} />
+            </div>
 
-        {/* Right column: Turn indicator (3 cols) */}
-        <div className="col-span-3">
-          <TurnIndicator gameState={gameState} myPosition={myPosition} />
-        </div>
+            {/* Right column: Turn indicator (3 cols) */}
+            <div className="col-span-3">
+              <TurnIndicator gameState={gameState} myPosition={myPosition} />
+            </div>
+          </>
+        )}
       </main>
 
-      {/* Footer: Player's hand */}
-      {myPosition && gameState.hands && (
+      {/* Footer: Player's hand (hidden during review) */}
+      {myPosition && gameState.hands && gameState.phase !== 'complete' && (
         <footer className="shrink-0 mt-3">
           <PlayerHand
             hand={gameState.hands[myPosition] || []}

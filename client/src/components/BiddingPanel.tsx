@@ -88,8 +88,8 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
                   py-1.5 rounded text-sm font-display font-bold transition-all border
                   ${suitColors[strain]}
                   ${isMyTurn
-                    ? 'bg-deco-navy border-deco-gold/20 hover:bg-deco-accent hover:border-deco-gold/40 hover:scale-105'
-                    : 'bg-deco-navy/50 border-deco-gold/10 opacity-50 cursor-not-allowed'
+                    ? 'bg-deco-cream border-deco-gold/30 hover:bg-deco-gold-light hover:border-deco-gold hover:scale-105 shadow-sm'
+                    : 'bg-deco-cream/50 border-deco-gold/10 opacity-50 cursor-not-allowed'
                   }
                 `}
               >

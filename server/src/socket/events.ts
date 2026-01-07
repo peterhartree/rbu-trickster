@@ -13,6 +13,7 @@ export const SOCKET_EVENTS = {
   GAME_START: 'game:start',
   GAME_STARTED: 'game:started',
   GAME_STATE_UPDATE: 'game:state-update',
+  GAME_NEW_HAND: 'game:new-hand',
 
   // Bidding
   BID_PLACE: 'bid:place',

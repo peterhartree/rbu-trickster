@@ -186,28 +186,41 @@ export class GameRoom {
 
   getStateForPlayer(position: Position): Partial<GameState> {
     // Return filtered state based on game phase
-    const isDummy = this.gameState.cardPlay?.dummy === position;
-    const isDeclarer = this.gameState.cardPlay?.declarer === position;
     const dummyPosition = this.gameState.cardPlay?.dummy;
-    const showDummy = this.gameState.phase === Phase.PLAYING && dummyPosition;
+
+    // Dummy is revealed after opening lead (at least one card played)
+    const cardsPlayed = this.gameState.cardPlay?.currentTrick?.cards?.length || 0;
+    const tricksPlayed = this.gameState.cardPlay?.tricks?.length || 0;
+    const openingLeadPlayed = cardsPlayed > 0 || tricksPlayed > 0;
+    const showDummy = this.gameState.phase === Phase.PLAYING && dummyPosition && openingLeadPlayed;
+
+    // In COMPLETE phase, show all original hands for review
+    const isReviewPhase = this.gameState.phase === Phase.COMPLETE;
 
     return {
       ...this.gameState,
+      // Include original deal for review phase
+      originalHands: isReviewPhase && this.gameState.deal ? {
+        [Pos.NORTH]: this.gameState.deal.north,
+        [Pos.SOUTH]: this.gameState.deal.south,
+        [Pos.EAST]: this.gameState.deal.east,
+        [Pos.WEST]: this.gameState.deal.west,
+      } : undefined,
       hands: {
         [Pos.NORTH]:
-          position === Pos.NORTH || (showDummy && dummyPosition === Pos.NORTH)
+          position === Pos.NORTH || (showDummy && dummyPosition === Pos.NORTH) || isReviewPhase
             ? this.gameState.hands[Pos.NORTH]
             : [],
         [Pos.SOUTH]:
-          position === Pos.SOUTH || (showDummy && dummyPosition === Pos.SOUTH)
+          position === Pos.SOUTH || (showDummy && dummyPosition === Pos.SOUTH) || isReviewPhase
             ? this.gameState.hands[Pos.SOUTH]
             : [],
         [Pos.EAST]:
-          position === Pos.EAST || (showDummy && dummyPosition === Pos.EAST)
+          position === Pos.EAST || (showDummy && dummyPosition === Pos.EAST) || isReviewPhase
             ? this.gameState.hands[Pos.EAST]
             : [],
         [Pos.WEST]:
-          position === Pos.WEST || (showDummy && dummyPosition === Pos.WEST)
+          position === Pos.WEST || (showDummy && dummyPosition === Pos.WEST) || isReviewPhase
             ? this.gameState.hands[Pos.WEST]
             : [],
       },
@@ -215,6 +228,25 @@ export class GameRoom {
   }
 
   getFullState(): GameState {
+    return this.gameState;
+  }
+
+  dealNewHand(): GameState {
+    // Get next dealer (rotate clockwise from previous dealer)
+    const previousDealer = this.gameState.deal?.dealer || Pos.NORTH;
+    const nextDealer = getNextPosition(previousDealer);
+
+    // Deal new cards
+    const deal = dealCards(nextDealer);
+
+    // Use reducer to transition to bidding phase
+    this.gameState = gameReducer(this.gameState, {
+      type: 'DEAL_CARDS',
+      deal,
+    });
+
+    this.gameStartTime = Date.now();
+    this.lastActivity = Date.now();
     return this.gameState;
   }
 

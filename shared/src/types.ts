@@ -203,6 +203,13 @@ export interface GameState {
     [Position.EAST]: Card[];
     [Position.WEST]: Card[];
   };
+  // Original hands for review after hand completes
+  originalHands?: {
+    [Position.NORTH]: Card[];
+    [Position.SOUTH]: Card[];
+    [Position.EAST]: Card[];
+    [Position.WEST]: Card[];
+  };
 }
 
 export type GameAction =
