@@ -37,9 +37,9 @@ export class GameRoom {
   }
 
   addPlayer(socketId: string): Position {
-    // Assign next available position
     const positions: Position[] = [Pos.NORTH, Pos.EAST, Pos.SOUTH, Pos.WEST];
 
+    // First, try to find an empty position
     for (const position of positions) {
       if (!this.players[position]) {
         const player: Player = {
@@ -52,6 +52,26 @@ export class GameRoom {
         this.players[position] = player;
         this.gameState.players[position] = player;
         this.lastActivity = Date.now();
+        return position;
+      }
+    }
+
+    // No empty positions - check for disconnected players to replace
+    for (const position of positions) {
+      const existingPlayer = this.players[position];
+      if (existingPlayer && !existingPlayer.connected) {
+        // Allow reconnection to this slot
+        const player: Player = {
+          id: socketId,
+          socketId,
+          position,
+          connected: true,
+        };
+
+        this.players[position] = player;
+        this.gameState.players[position] = player;
+        this.lastActivity = Date.now();
+        console.log(`Player reconnected to position ${position} in room ${this.roomId}`);
         return position;
       }
     }

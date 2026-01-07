@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { HandRecord, Suit } from '@bridge/shared';
-import { Suit as SuitEnum } from '@bridge/shared';
+import type { HandRecord, Strain, Suit } from '@bridge/shared';
+import { Strain as Strn, Suit as SuitEnum } from '@bridge/shared';
 
 interface HandHistoryProps {
   roomId: string;
@@ -8,18 +8,26 @@ interface HandHistoryProps {
   onClose: () => void;
 }
 
+const strainSymbols: Record<Strain, string> = {
+  [Strn.CLUBS]: '♣',
+  [Strn.DIAMONDS]: '♦',
+  [Strn.HEARTS]: '♥',
+  [Strn.SPADES]: '♠',
+  [Strn.NO_TRUMP]: 'NT',
+};
+
+const suitSymbols: Record<Suit, string> = {
+  [SuitEnum.CLUBS]: '♣',
+  [SuitEnum.DIAMONDS]: '♦',
+  [SuitEnum.HEARTS]: '♥',
+  [SuitEnum.SPADES]: '♠',
+};
+
 function HandHistory({ roomId, isOpen, onClose }: HandHistoryProps) {
   const [hands, setHands] = useState<HandRecord[]>([]);
   const [selectedHand, setSelectedHand] = useState<HandRecord | null>(null);
   const [replayStep, setReplayStep] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  const suitSymbols: Record<Suit, string> = {
-    [SuitEnum.SPADES]: '♠',
-    [SuitEnum.HEARTS]: '♥',
-    [SuitEnum.DIAMONDS]: '♦',
-    [SuitEnum.CLUBS]: '♣',
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -146,7 +154,7 @@ function HandHistory({ roomId, isOpen, onClose }: HandHistoryProps) {
                       <div>
                         <p className="font-semibold text-lg">
                           {contract.level}
-                          {suitSymbols[contract.strain]}
+                          {strainSymbols[contract.strain]}
                           {contract.doubled && 'X'}
                           {contract.redoubled && 'XX'}
                         </p>
@@ -190,7 +198,7 @@ function HandHistory({ roomId, isOpen, onClose }: HandHistoryProps) {
                 <div>
                   <h3 className="text-xl font-bold text-green-800 mb-2">
                     {selectedHand.result.contract.level}
-                    {suitSymbols[selectedHand.result.contract.strain]}
+                    {strainSymbols[selectedHand.result.contract.strain]}
                     {selectedHand.result.contract.doubled && 'X'}
                     {selectedHand.result.contract.redoubled && 'XX'} by{' '}
                     {selectedHand.result.contract.declarer}

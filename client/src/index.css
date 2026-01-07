@@ -15,3 +15,34 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Card hover glow effect */
+.card-glow:hover:not(:disabled) {
+  box-shadow: 0 8px 25px -5px rgba(251, 191, 36, 0.4),
+              0 0 15px rgba(251, 191, 36, 0.2);
+}
+
+/* Table felt texture */
+.table-texture {
+  background-image:
+    radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,0.15) 100%);
+}
+
+/* Scrollbar styling for bidding sequence */
+.bidding-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.bidding-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 2px;
+}
+
+.bidding-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.bidding-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

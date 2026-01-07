@@ -1,40 +1,33 @@
-import type { Position, GameState, Suit } from '@bridge/shared';
-import { Position as Pos, Suit as SuitEnum } from '@bridge/shared';
+import type { Position, GameState } from '@bridge/shared';
+import { Position as Pos } from '@bridge/shared';
+import Card from './Card';
 
 interface PlayAreaProps {
   gameState: Partial<GameState>;
   myPosition: Position | null;
 }
 
+const positionNames: Record<Position, string> = {
+  N: 'North',
+  E: 'East',
+  S: 'South',
+  W: 'West',
+};
+
 function PlayArea({ gameState, myPosition }: PlayAreaProps) {
   const currentTrick = gameState.cardPlay?.currentTrick;
-  const contract = gameState.contract;
 
-  const suitSymbols: Record<Suit, string> = {
-    [SuitEnum.SPADES]: '♠',
-    [SuitEnum.HEARTS]: '♥',
-    [SuitEnum.DIAMONDS]: '♦',
-    [SuitEnum.CLUBS]: '♣',
-  };
-
-  const suitColors: Record<Suit, string> = {
-    [SuitEnum.SPADES]: 'text-gray-900',
-    [SuitEnum.HEARTS]: 'text-red-600',
-    [SuitEnum.DIAMONDS]: 'text-orange-600',
-    [SuitEnum.CLUBS]: 'text-green-700',
-  };
-
-  // Position layout for compass display
+  // Position layout for compass display - adjusted for h-full
   const getPositionStyle = (position: Position) => {
     switch (position) {
       case Pos.NORTH:
-        return 'top-4 left-1/2 transform -translate-x-1/2';
+        return 'top-2 left-1/2 transform -translate-x-1/2 flex flex-col items-center';
       case Pos.EAST:
-        return 'right-4 top-1/2 transform -translate-y-1/2';
+        return 'right-2 top-1/2 transform -translate-y-1/2 flex flex-row-reverse items-center';
       case Pos.SOUTH:
-        return 'bottom-4 left-1/2 transform -translate-x-1/2';
+        return 'bottom-2 left-1/2 transform -translate-x-1/2 flex flex-col-reverse items-center';
       case Pos.WEST:
-        return 'left-4 top-1/2 transform -translate-y-1/2';
+        return 'left-2 top-1/2 transform -translate-y-1/2 flex flex-row items-center';
     }
   };
 
@@ -44,20 +37,22 @@ function PlayArea({ gameState, myPosition }: PlayAreaProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-green-800">Card table</h2>
-        {contract && (
-          <p className="text-sm text-gray-600">
-            Contract: <span className="font-semibold">{contract.level}{suitSymbols[contract.strain]}</span>
-            {contract.doubled && 'X'}{contract.redoubled && 'XX'}
-            {' by '}<span className="font-semibold">{contract.declarer}</span>
-          </p>
-        )}
-      </div>
+    <div className="h-full flex flex-col bg-white/95 backdrop-blur rounded-lg shadow-lg overflow-hidden">
+      {/* Compass table - takes all available space */}
+      <div className="flex-1 min-h-[280px] relative bg-gradient-to-br from-table-light to-table-felt rounded-lg m-2 table-texture">
+        {/* Decorative centre circle */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border-2 border-white/20" />
 
-      {/* Compass table */}
-      <div className="relative bg-gradient-to-br from-green-700 to-green-800 rounded-lg" style={{ height: '400px' }}>
+        {/* Centre info */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-white z-10">
+          {currentTrick && currentTrick.cards.length === 0 && (
+            <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-2">
+              <p className="font-semibold text-sm">Trick {currentTrick.number}</p>
+              <p className="text-xs opacity-80">Lead: {positionNames[currentTrick.leader]}</p>
+            </div>
+          )}
+        </div>
+
         {/* Position labels and cards */}
         {[Pos.NORTH, Pos.EAST, Pos.SOUTH, Pos.WEST].map((position) => {
           const playedCard = getCardForPosition(position);
@@ -68,48 +63,40 @@ function PlayArea({ gameState, myPosition }: PlayAreaProps) {
           return (
             <div key={position} className={`absolute ${getPositionStyle(position)}`}>
               {/* Position label */}
-              <div className="text-centre mb-2">
-                <div className={`inline-block px-3 py-1 rounded ${
-                  isCurrentPlayer ? 'bg-yellow-400 text-gray-900' : 'bg-white text-gray-800'
-                } font-semibold text-sm`}>
-                  {position}
-                  {isDeclarer && ' (D)'}
-                  {isDummy && ' (Dummy)'}
-                </div>
+              <div
+                className={`
+                  px-2 py-0.5 rounded text-xs font-semibold transition-all
+                  ${isCurrentPlayer
+                    ? 'bg-turn-active text-white ring-2 ring-turn-glow ring-offset-1'
+                    : 'bg-white/90 text-gray-700'
+                  }
+                  ${position === Pos.NORTH || position === Pos.SOUTH ? 'mb-1' : 'mx-1'}
+                `}
+              >
+                {position}
+                {isDeclarer && ' D'}
+                {isDummy && ' 🂠'}
               </div>
 
               {/* Played card */}
               {playedCard && (
-                <div className={`bg-white rounded-lg shadow-lg px-6 py-8 text-centre ${suitColors[playedCard.card.suit]}`}>
-                  <div className="text-4xl font-bold">{playedCard.card.rank}</div>
-                  <div className="text-3xl">{suitSymbols[playedCard.card.suit]}</div>
-                </div>
+                <Card card={playedCard.card} size="md" elevated />
               )}
             </div>
           );
         })}
-
-        {/* Centre info */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-centre text-white">
-          {currentTrick && currentTrick.cards.length === 0 && (
-            <div className="bg-white bg-opacity-20 rounded-lg p-4">
-              <p className="font-semibold">Trick {currentTrick.number}</p>
-              <p className="text-sm">Leader: {currentTrick.leader}</p>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Tricks won */}
+      {/* Tricks won - compact bar at bottom */}
       {gameState.cardPlay && (
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div className="bg-blue-50 rounded p-3">
-            <p className="text-sm font-semibold text-blue-900">North-South</p>
-            <p className="text-2xl font-bold text-blue-700">{gameState.cardPlay.nsTricks} tricks</p>
+        <div className="shrink-0 grid grid-cols-2 gap-2 px-2 pb-2">
+          <div className="bg-blue-50 rounded px-3 py-1.5 flex items-center justify-between">
+            <span className="text-xs font-semibold text-blue-800">N-S</span>
+            <span className="text-lg font-bold text-blue-700">{gameState.cardPlay.nsTricks}</span>
           </div>
-          <div className="bg-orange-50 rounded p-3">
-            <p className="text-sm font-semibold text-orange-900">East-West</p>
-            <p className="text-2xl font-bold text-orange-700">{gameState.cardPlay.ewTricks} tricks</p>
+          <div className="bg-orange-50 rounded px-3 py-1.5 flex items-center justify-between">
+            <span className="text-xs font-semibold text-orange-800">E-W</span>
+            <span className="text-lg font-bold text-orange-700">{gameState.cardPlay.ewTricks}</span>
           </div>
         </div>
       )}

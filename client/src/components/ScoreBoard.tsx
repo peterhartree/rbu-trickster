@@ -1,21 +1,22 @@
-import type { GameState, Suit } from '@bridge/shared';
-import { Suit as SuitEnum } from '@bridge/shared';
+import type { GameState, Strain } from '@bridge/shared';
+import { Strain as Strn } from '@bridge/shared';
 
 interface ScoreBoardProps {
   gameState: Partial<GameState>;
 }
 
+const strainSymbols: Record<Strain, string> = {
+  [Strn.CLUBS]: '♣',
+  [Strn.DIAMONDS]: '♦',
+  [Strn.HEARTS]: '♥',
+  [Strn.SPADES]: '♠',
+  [Strn.NO_TRUMP]: 'NT',
+};
+
 function ScoreBoard({ gameState }: ScoreBoardProps) {
   const contract = gameState.contract;
   const score = gameState.score;
   const result = gameState.result;
-
-  const suitSymbols: Record<Suit, string> = {
-    [SuitEnum.SPADES]: '♠',
-    [SuitEnum.HEARTS]: '♥',
-    [SuitEnum.DIAMONDS]: '♦',
-    [SuitEnum.CLUBS]: '♣',
-  };
 
   if (!contract) {
     return (
@@ -35,7 +36,7 @@ function ScoreBoard({ gameState }: ScoreBoardProps) {
         <h3 className="font-semibold mb-2 text-gray-700">Contract:</h3>
         <p className="text-3xl font-bold text-green-800">
           {contract.level}
-          {suitSymbols[contract.strain]}
+          {strainSymbols[contract.strain]}
           {contract.doubled && 'X'}
           {contract.redoubled && 'XX'}
         </p>
