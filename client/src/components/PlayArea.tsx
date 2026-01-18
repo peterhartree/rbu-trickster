@@ -1,6 +1,17 @@
-import type { Position, GameState, Card as CardType } from '@bridge/shared';
-import { Position as Pos } from '@bridge/shared';
+import type { Position, GameState, Card as CardType, Suit } from '@bridge/shared';
+import { Position as Pos, Suit as SuitEnum } from '@bridge/shared';
 import Card from './Card';
+
+// Sort cards by suit (S, H, D, C) then by rank (A-2)
+function sortCards(cards: CardType[]): CardType[] {
+  const suitOrder: Suit[] = [SuitEnum.SPADES, SuitEnum.HEARTS, SuitEnum.DIAMONDS, SuitEnum.CLUBS];
+  const rankOrder = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+  return [...cards].sort((a, b) => {
+    const suitDiff = suitOrder.indexOf(a.suit) - suitOrder.indexOf(b.suit);
+    if (suitDiff !== 0) return suitDiff;
+    return rankOrder.indexOf(a.rank) - rankOrder.indexOf(b.rank);
+  });
+}
 
 interface PlayAreaProps {
   gameState: Partial<GameState>;
@@ -26,13 +37,14 @@ function PlayArea({ gameState, myPosition, onPlayCard }: PlayAreaProps) {
   const canPlayDummyCards = isDummysTurn && iAmDeclarer && onPlayCard;
 
   // Get dummy's hand if visible (not our own hand - that's shown in PlayerHand)
+  // Sort by suit for better visual organisation
   const dummyHand: CardType[] | null =
     dummyPosition &&
     dummyPosition !== myPosition &&
     gameState.hands &&
     gameState.hands[dummyPosition] &&
     gameState.hands[dummyPosition].length > 0
-      ? gameState.hands[dummyPosition]
+      ? sortCards(gameState.hands[dummyPosition])
       : null;
 
   // Position layout for compass display

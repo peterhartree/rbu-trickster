@@ -42,11 +42,11 @@ export default {
           bronze: '#8b7355',
           accent: '#1a3a5c',
         },
-        // Card suit colours - classic with character
-        'deco-spade': '#1a1a2e',
-        'deco-heart': '#8b0000',
-        'deco-diamond': '#b45309',
-        'deco-club': '#1a4d3e',
+        // Card suit colours - high contrast for readability
+        'deco-spade': '#1a1a2e',    // Dark navy (almost black)
+        'deco-heart': '#c41e3a',    // Cardinal red
+        'deco-diamond': '#d97706',   // Amber/orange
+        'deco-club': '#059669',      // Emerald green (more vibrant)
       },
       animation: {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
