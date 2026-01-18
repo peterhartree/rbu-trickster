@@ -1,11 +1,9 @@
 [build]
 builder = "nixpacks"
+buildCommand = "yarn install && yarn workspace @bridge/shared build && yarn workspace @bridge/client build && yarn workspace @bridge/server build"
 
 [build.nixpacks]
 nodeVersion = "20"
-
-[build]
-buildCommand = "yarn install && yarn workspace @bridge/shared build && yarn workspace @bridge/client build && yarn workspace @bridge/server build"
 
 [deploy]
 startCommand = "yarn workspace @bridge/server start"
