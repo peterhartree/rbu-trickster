@@ -1,0 +1,15 @@
+[build]
+builder = "nixpacks"
+
+[build.nixpacks]
+nodeVersion = "20"
+
+[build]
+buildCommand = "yarn install && yarn workspace @bridge/shared build && yarn workspace @bridge/client build && yarn workspace @bridge/server build"
+
+[deploy]
+startCommand = "yarn workspace @bridge/server start"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

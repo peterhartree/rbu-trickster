@@ -13,7 +13,9 @@ import TurnIndicator from './TurnIndicator';
 import HandReview from './HandReview';
 import SessionScoreDisplay from './SessionScoreDisplay';
 
-const SOCKET_URL = 'http://localhost:3001';
+// In production (same domain), use relative URL; in dev, use localhost
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
+  (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>();

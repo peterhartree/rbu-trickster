@@ -2,14 +2,33 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { setupSocketHandlers, gameManager } from './socket/socketHandler.js';
 import { saycConventions, searchBidMeaning, searchByCategory, searchByKeyword } from './conventions/sayc/index.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const httpServer = createServer(app);
+
+// CORS configuration - allow multiple origins for dev and production
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:5173'];
+
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173', // Vite default dev server
+    origin: (origin, callback) => {
+      // Allow requests with no origin (same-origin, mobile apps, etc.)
+      if (!origin) return callback(null, true);
+      // Allow configured origins
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // In production, allow same-origin requests
+      if (process.env.NODE_ENV === 'production') return callback(null, true);
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: ['GET', 'POST'],
   },
 });
@@ -100,6 +119,17 @@ app.get('/api/rooms/:roomId/history/:handId/pbn', (req, res) => {
 
 // Setup Socket.IO handlers
 setupSocketHandlers(io);
+
+// Serve static files in production
+const clientBuildPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientBuildPath));
+
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/socket.io')) {
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  }
+});
 
 const PORT = process.env.PORT || 3001;
 
