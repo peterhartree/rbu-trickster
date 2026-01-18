@@ -1,8 +1,8 @@
 {
-  "name": "bridge-game",
+  "name": "rbu-trickster",
   "version": "1.0.0",
   "private": true,
-  "description": "Real-time multiplayer contract bridge web application",
+  "description": "RBU Trickster - Real-time multiplayer contract bridge training app",
   "workspaces": [
     "shared",
     "server",

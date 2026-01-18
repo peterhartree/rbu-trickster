@@ -1,6 +1,6 @@
-# Contract Bridge Web App
+# RBU Trickster
 
-A real-time multiplayer contract bridge web application built with React, Node.js, and WebSockets.
+A real-time multiplayer contract bridge training app built with React, Node.js, and WebSockets.
 
 ## Features
 

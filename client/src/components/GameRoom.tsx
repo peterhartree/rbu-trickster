@@ -189,7 +189,7 @@ function GameRoom() {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold text-deco-gold tracking-wide">
-                Contract Bridge
+                RBU Trickster
               </h1>
               <p className="text-xs text-deco-cream/60 tracking-widest uppercase">
                 Room <span className="font-mono text-deco-gold/80">{roomId}</span>
