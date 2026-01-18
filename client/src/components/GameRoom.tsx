@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import type { Position, GameState, BidAction, Card } from '@bridge/shared';
+import type { Position, GameState, BidAction, Card, SessionScore } from '@bridge/shared';
 import WaitingRoom from './WaitingRoom';
 import BiddingPanel from './BiddingPanel';
 import PlayerHand from './PlayerHand';
@@ -11,6 +11,7 @@ import SAYCReference from './SAYCReference';
 import HandHistory from './HandHistory';
 import TurnIndicator from './TurnIndicator';
 import HandReview from './HandReview';
+import SessionScoreDisplay from './SessionScoreDisplay';
 
 const SOCKET_URL = 'http://localhost:3001';
 
@@ -24,6 +25,7 @@ function GameRoom() {
   const [error, setError] = useState<string | null>(null);
   const [showSAYCReference, setShowSAYCReference] = useState(false);
   const [showHandHistory, setShowHandHistory] = useState(false);
+  const [sessionScore, setSessionScore] = useState<SessionScore | null>(null);
 
   useEffect(() => {
     if (!roomId) return;
@@ -52,6 +54,10 @@ function GameRoom() {
 
     newSocket.on('game:started', (state: Partial<GameState>) => {
       setGameState(state);
+      // Update session from game state if available
+      if (state.session) {
+        setSessionScore(state.session);
+      }
     });
 
     newSocket.on('bid:made', (data: any) => {
@@ -72,6 +78,22 @@ function GameRoom() {
         setGameState(data.gameState);
       } else {
         setGameState((prev) => ({ ...prev, score: data.score, result: data.result }));
+      }
+      // Update session score
+      if (data.sessionScore) {
+        setSessionScore(data.sessionScore);
+      }
+    });
+
+    newSocket.on('session:complete', (data: any) => {
+      if (data.sessionScore) {
+        setSessionScore(data.sessionScore);
+      }
+    });
+
+    newSocket.on('session:started', (data: any) => {
+      if (data.sessionScore) {
+        setSessionScore(data.sessionScore);
       }
     });
 
@@ -110,6 +132,12 @@ function GameRoom() {
   const handleNewHand = () => {
     if (socket && roomId) {
       socket.emit('game:new-hand', { roomId });
+    }
+  };
+
+  const handleNewSession = () => {
+    if (socket && roomId) {
+      socket.emit('session:new', { roomId });
     }
   };
 
@@ -196,12 +224,24 @@ function GameRoom() {
         <div className="mt-3 h-px bg-gradient-to-r from-transparent via-deco-gold/40 to-transparent" />
       </header>
 
+      {/* Session Score Display */}
+      {sessionScore && (
+        <div className="shrink-0 mb-3">
+          <SessionScoreDisplay session={sessionScore} />
+        </div>
+      )}
+
       {/* Main game area */}
       <main className="flex-1 min-h-0 grid grid-cols-12 gap-3">
         {gameState.phase === 'complete' ? (
           /* Hand Review - full width when complete */
           <div className="col-span-12">
-            <HandReview gameState={gameState} onNewHand={handleNewHand} />
+            <HandReview
+              gameState={gameState}
+              sessionScore={sessionScore}
+              onNewHand={handleNewHand}
+              onNewSession={handleNewSession}
+            />
           </div>
         ) : (
           <>
@@ -221,7 +261,7 @@ function GameRoom() {
 
             {/* Centre column: Play area (6 cols) */}
             <div className="col-span-6">
-              <PlayArea gameState={gameState} myPosition={myPosition} />
+              <PlayArea gameState={gameState} myPosition={myPosition} onPlayCard={handlePlayCard} />
             </div>
 
             {/* Right column: Turn indicator (3 cols) */}

@@ -6,11 +6,13 @@ import type {
   BidAction,
   Card,
   BidCall,
+  SessionScore,
 } from '@bridge/shared';
 import { Position as Pos, GamePhase as Phase } from '@bridge/shared';
 import { dealCards, getNextPosition } from '../domain/cards/deck.js';
 import { gameReducer } from '../domain/game-state/reducer.js';
 import { HandHistory } from './HandHistory.js';
+import { SessionManager } from './SessionManager.js';
 
 export class GameRoom {
   public roomId: string;
@@ -18,11 +20,13 @@ export class GameRoom {
   private gameState: GameState;
   private lastActivity: number = Date.now();
   private handHistory: HandHistory;
+  private sessionManager: SessionManager;
   private gameStartTime: number = 0;
 
   constructor(roomId: string) {
     this.roomId = roomId;
     this.handHistory = new HandHistory();
+    this.sessionManager = new SessionManager();
     this.gameState = {
       roomId,
       phase: Phase.WAITING,
@@ -94,6 +98,9 @@ export class GameRoom {
       throw new Error('Need 4 players to start');
     }
 
+    // Start a new hand in the session
+    const session = this.sessionManager.startHand();
+
     // Deal cards starting with North as dealer
     const deal = dealCards(Pos.NORTH);
 
@@ -102,6 +109,9 @@ export class GameRoom {
       type: 'DEAL_CARDS',
       deal,
     });
+
+    // Add session to game state
+    this.gameState.session = session;
 
     this.gameStartTime = Date.now();
     this.lastActivity = Date.now();
@@ -131,9 +141,25 @@ export class GameRoom {
   }
 
   playCard(socketId: string, card: Card) {
-    const position = this.getPlayerPosition(socketId);
-    if (!position) {
+    const socketPosition = this.getPlayerPosition(socketId);
+    if (!socketPosition) {
       throw new Error('Player not in room');
+    }
+
+    // Determine the actual playing position
+    // Declarer can play cards from dummy's hand when it's dummy's turn
+    let playingPosition = socketPosition;
+    const currentPlayer = this.gameState.currentPlayer;
+    const dummyPosition = this.gameState.cardPlay?.dummy;
+    const declarerPosition = this.gameState.cardPlay?.declarer;
+
+    if (
+      dummyPosition &&
+      currentPlayer === dummyPosition &&
+      socketPosition === declarerPosition
+    ) {
+      // Declarer is playing dummy's cards
+      playingPosition = dummyPosition;
     }
 
     // Store trick count before playing card
@@ -143,7 +169,7 @@ export class GameRoom {
     this.gameState = gameReducer(this.gameState, {
       type: 'PLAY_CARD',
       card,
-      position,
+      position: playingPosition,
     });
 
     // Check if trick was completed
@@ -153,6 +179,10 @@ export class GameRoom {
     // Check if hand is complete and store history
     if (this.gameState.phase === Phase.COMPLETE && this.gameState.result && this.gameState.score && this.gameState.deal && this.gameState.bidding && this.gameState.cardPlay) {
       const duration = Date.now() - this.gameStartTime;
+
+      // Record score in session
+      const session = this.sessionManager.recordScore(this.gameState.score);
+      this.gameState.session = session;
 
       this.handHistory.storeHand(
         this.gameState.deal,
@@ -173,7 +203,7 @@ export class GameRoom {
     }
 
     this.lastActivity = Date.now();
-    return { gameState: this.gameState, position, trickComplete };
+    return { gameState: this.gameState, position: playingPosition, trickComplete };
   }
 
   handleDisconnect(socketId: string) {
@@ -232,6 +262,9 @@ export class GameRoom {
   }
 
   dealNewHand(): GameState {
+    // Start a new hand in the session
+    const session = this.sessionManager.startHand();
+
     // Get next dealer (rotate clockwise from previous dealer)
     const previousDealer = this.gameState.deal?.dealer || Pos.NORTH;
     const nextDealer = getNextPosition(previousDealer);
@@ -244,6 +277,9 @@ export class GameRoom {
       type: 'DEAL_CARDS',
       deal,
     });
+
+    // Add session to game state
+    this.gameState.session = session;
 
     this.gameStartTime = Date.now();
     this.lastActivity = Date.now();
@@ -258,5 +294,19 @@ export class GameRoom {
 
   getHandHistory() {
     return this.handHistory;
+  }
+
+  getSessionScore(): SessionScore {
+    return this.sessionManager.getSession();
+  }
+
+  resetSession(): SessionScore {
+    const session = this.sessionManager.resetSession();
+    this.gameState.session = session;
+    return session;
+  }
+
+  isSessionComplete(): boolean {
+    return this.sessionManager.isSessionComplete();
   }
 }

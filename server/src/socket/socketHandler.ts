@@ -135,6 +135,9 @@ export function setupSocketHandlers(io: Server) {
 
           // If hand is complete, send hand complete event with full filtered state
           if (fullState.phase === 'complete' && fullState.score) {
+            const sessionScore = room.getSessionScore();
+            const isSessionComplete = room.isSessionComplete();
+
             for (const pos of Object.keys(room.players)) {
               const playerPosition = pos as Position;
               const player = room.players[playerPosition];
@@ -144,7 +147,15 @@ export function setupSocketHandlers(io: Server) {
                   score: fullState.score,
                   result: fullState.result,
                   gameState: filteredState,
+                  sessionScore,
                 });
+
+                // Emit session complete if 4 hands done
+                if (isSessionComplete) {
+                  io.to(player.socketId).emit(SOCKET_EVENTS.SESSION_COMPLETE, {
+                    sessionScore,
+                  });
+                }
               }
             }
           }
@@ -180,6 +191,38 @@ export function setupSocketHandlers(io: Server) {
         console.log(`🃏 New hand dealt in room ${roomId}`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to deal new hand';
+        socket.emit(SOCKET_EVENTS.ROOM_ERROR, { message });
+      }
+    });
+
+    // New session (after session complete)
+    socket.on(SOCKET_EVENTS.SESSION_NEW, ({ roomId }) => {
+      try {
+        const room = gameManager.getRoom(roomId);
+        if (!room) {
+          throw new Error('Room not found');
+        }
+
+        // Reset session and deal new hand
+        room.resetSession();
+        room.dealNewHand();
+
+        // Send filtered state to each player with session started event
+        for (const pos of Object.keys(room.players)) {
+          const playerPosition = pos as Position;
+          const player = room.players[playerPosition];
+          if (player) {
+            const filteredState = room.getStateForPlayer(playerPosition);
+            io.to(player.socketId).emit(SOCKET_EVENTS.SESSION_STARTED, {
+              sessionScore: room.getSessionScore(),
+            });
+            io.to(player.socketId).emit(SOCKET_EVENTS.GAME_STARTED, filteredState);
+          }
+        }
+
+        console.log(`🎯 New session started in room ${roomId}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to start new session';
         socket.emit(SOCKET_EVENTS.ROOM_ERROR, { message });
       }
     });

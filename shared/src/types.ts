@@ -154,6 +154,17 @@ export interface DuplicateScore extends ScoreBreakdown {
   ewScore: number;
 }
 
+export interface SessionScore {
+  sessionId: string;
+  handNumber: number;        // 1-4
+  totalHands: number;        // 4
+  nsTotal: number;           // Cumulative NS score
+  ewTotal: number;           // Cumulative EW score
+  handScores: DuplicateScore[]; // Per-hand scores
+  isComplete: boolean;       // True after hand 4
+  startedAt: number;
+}
+
 export interface ContractResult {
   contract: Contract;
   tricksMade: number;
@@ -210,6 +221,7 @@ export interface GameState {
     [Position.EAST]: Card[];
     [Position.WEST]: Card[];
   };
+  session?: SessionScore;
 }
 
 export type GameAction =
@@ -268,6 +280,7 @@ export interface TrickCompleteEvent {
 export interface HandCompleteEvent {
   score: DuplicateScore;
   gameState: GameState;
+  sessionScore: SessionScore;
 }
 
 // ============================================================================

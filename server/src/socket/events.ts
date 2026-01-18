@@ -25,6 +25,11 @@ export const SOCKET_EVENTS = {
   TRICK_COMPLETE: 'trick:complete',
   HAND_COMPLETE: 'hand:complete',
 
+  // Session
+  SESSION_NEW: 'session:new',
+  SESSION_STARTED: 'session:started',
+  SESSION_COMPLETE: 'session:complete',
+
   // Synchronisation
   SYNC_REQUEST: 'sync:request',
   SYNC_RESPONSE: 'sync:response',

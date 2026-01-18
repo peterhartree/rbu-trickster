@@ -5,6 +5,7 @@ import Card from './Card';
 interface PlayAreaProps {
   gameState: Partial<GameState>;
   myPosition: Position | null;
+  onPlayCard?: (card: CardType) => void;
 }
 
 const positionNames: Record<Position, string> = {
@@ -14,9 +15,15 @@ const positionNames: Record<Position, string> = {
   W: 'West',
 };
 
-function PlayArea({ gameState, myPosition }: PlayAreaProps) {
+function PlayArea({ gameState, myPosition, onPlayCard }: PlayAreaProps) {
   const currentTrick = gameState.cardPlay?.currentTrick;
   const dummyPosition = gameState.cardPlay?.dummy;
+  const declarerPosition = gameState.contract?.declarer;
+
+  // Declarer can play dummy's cards when it's dummy's turn
+  const isDummysTurn = gameState.currentPlayer === dummyPosition;
+  const iAmDeclarer = myPosition === declarerPosition;
+  const canPlayDummyCards = isDummysTurn && iAmDeclarer && onPlayCard;
 
   // Get dummy's hand if visible (not our own hand - that's shown in PlayerHand)
   const dummyHand: CardType[] | null =
@@ -124,7 +131,8 @@ function PlayArea({ gameState, myPosition }: PlayAreaProps) {
                   key={`${card.suit}-${card.rank}`}
                   card={card}
                   size="sm"
-                  disabled
+                  disabled={!canPlayDummyCards}
+                  onClick={canPlayDummyCards ? () => onPlayCard(card) : undefined}
                 />
               ))}
             </div>

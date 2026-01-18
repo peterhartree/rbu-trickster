@@ -1,10 +1,12 @@
-import type { GameState, Position, Card as CardType, Strain } from '@bridge/shared';
+import type { GameState, Position, Card as CardType, Strain, SessionScore } from '@bridge/shared';
 import { Position as Pos, Strain as Strn } from '@bridge/shared';
 import Card from './Card';
 
 interface HandReviewProps {
   gameState: Partial<GameState>;
+  sessionScore: SessionScore | null;
   onNewHand: () => void;
+  onNewSession: () => void;
 }
 
 const positionNames: Record<Position, string> = {
@@ -22,11 +24,14 @@ const strainSymbols: Record<Strain, string> = {
   [Strn.NO_TRUMP]: 'NT',
 };
 
-function HandReview({ gameState, onNewHand }: HandReviewProps) {
+function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandReviewProps) {
   const originalHands = gameState.originalHands;
   const contract = gameState.contract;
   const result = gameState.result;
   const score = gameState.score;
+
+  const isSessionComplete = sessionScore?.isComplete ?? false;
+  const handsRemaining = sessionScore ? sessionScore.totalHands - sessionScore.handNumber : 0;
 
   if (!originalHands) {
     return (
@@ -142,14 +147,91 @@ function HandReview({ gameState, onNewHand }: HandReviewProps) {
         </div>
       </div>
 
-      {/* Footer with New Hand button */}
+      {/* Footer with Session Summary and Actions */}
       <div className="shrink-0 p-4 bg-deco-midnight border-t border-deco-gold/20">
-        <button
-          onClick={onNewHand}
-          className="w-full bg-deco-gold hover:bg-deco-gold-light text-deco-navy font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-[1.02] shadow-gold"
-        >
-          Deal New Hand
-        </button>
+        {/* Session Summary */}
+        {sessionScore && (
+          <div className="mb-4">
+            {/* Session complete banner */}
+            {isSessionComplete && (
+              <div className="mb-4 p-4 bg-deco-gold/10 rounded-lg border border-deco-gold/30 text-center">
+                <p className="text-lg font-display font-bold text-deco-gold mb-1">
+                  Session Complete!
+                </p>
+                <p className="text-deco-cream">
+                  {sessionScore.nsTotal > sessionScore.ewTotal ? (
+                    <span>North-South wins by <span className="font-bold text-deco-gold">{sessionScore.nsTotal - sessionScore.ewTotal}</span> points</span>
+                  ) : sessionScore.ewTotal > sessionScore.nsTotal ? (
+                    <span>East-West wins by <span className="font-bold text-deco-gold">{sessionScore.ewTotal - sessionScore.nsTotal}</span> points</span>
+                  ) : (
+                    <span className="font-bold text-deco-gold">It's a tie!</span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Session totals */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className={`p-3 rounded-lg border ${
+                sessionScore.nsTotal >= sessionScore.ewTotal
+                  ? 'bg-deco-gold/10 border-deco-gold/30'
+                  : 'bg-deco-navy/50 border-deco-gold/10'
+              }`}>
+                <p className="text-xs text-deco-cream/60 uppercase tracking-wider">North-South</p>
+                <p className="text-2xl font-display font-bold text-deco-gold">
+                  {sessionScore.nsTotal}
+                </p>
+              </div>
+              <div className={`p-3 rounded-lg border ${
+                sessionScore.ewTotal > sessionScore.nsTotal
+                  ? 'bg-deco-gold/10 border-deco-gold/30'
+                  : 'bg-deco-navy/50 border-deco-gold/10'
+              }`}>
+                <p className="text-xs text-deco-cream/60 uppercase tracking-wider">East-West</p>
+                <p className="text-2xl font-display font-bold text-deco-gold">
+                  {sessionScore.ewTotal}
+                </p>
+              </div>
+            </div>
+
+            {/* Per-hand breakdown */}
+            {sessionScore.handScores.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs text-deco-cream/60 uppercase tracking-wider mb-2">Hand scores</p>
+                <div className="flex gap-2">
+                  {sessionScore.handScores.map((handScore, i) => (
+                    <div key={i} className="flex-1 p-2 bg-deco-navy/50 rounded border border-deco-gold/10 text-center text-sm">
+                      <p className="text-deco-cream/60 text-xs">Hand {i + 1}</p>
+                      <p className={handScore.nsScore > 0 ? 'text-deco-gold' : 'text-deco-cream/80'}>
+                        NS: {handScore.nsScore > 0 ? '+' : ''}{handScore.nsScore}
+                      </p>
+                      <p className={handScore.ewScore > 0 ? 'text-deco-gold' : 'text-deco-cream/80'}>
+                        EW: {handScore.ewScore > 0 ? '+' : ''}{handScore.ewScore}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action button */}
+        {isSessionComplete ? (
+          <button
+            onClick={onNewSession}
+            className="w-full bg-deco-gold hover:bg-deco-gold-light text-deco-navy font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-[1.02] shadow-gold"
+          >
+            Start New Session
+          </button>
+        ) : (
+          <button
+            onClick={onNewHand}
+            className="w-full bg-deco-gold hover:bg-deco-gold-light text-deco-navy font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-[1.02] shadow-gold"
+          >
+            Deal Next Hand {handsRemaining > 0 && `(${handsRemaining} remaining)`}
+          </button>
+        )}
       </div>
     </div>
   );
