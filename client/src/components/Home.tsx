@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'http://localhost:3001';
+// In production (same domain), use relative URL; in dev, use localhost
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
+  (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 function Home() {
   const [joinCode, setJoinCode] = useState('');
@@ -34,7 +36,7 @@ function Home() {
     <div className="min-h-screen bg-gradient-to-br from-green-800 to-green-900 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
         <h1 className="text-4xl font-bold text-center text-green-800 mb-2">
-          Contract Bridge
+          RBU Trickster
         </h1>
         <p className="text-center text-gray-600 mb-8">
           Real-time multiplayer bridge with SAYC conventions
