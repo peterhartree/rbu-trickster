@@ -1,4 +1,4 @@
-import type { Position, GameState, Card as CardType, Suit } from '@bridge/shared';
+import type { Position, GameState, Card as CardType, Suit, Trick } from '@bridge/shared';
 import { Position as Pos, Suit as SuitEnum } from '@bridge/shared';
 import Card from './Card';
 
@@ -17,6 +17,7 @@ interface PlayAreaProps {
   gameState: Partial<GameState>;
   myPosition: Position | null;
   onPlayCard?: (card: CardType) => void;
+  lastCompletedTrick?: Trick | null;
 }
 
 const positionNames: Record<Position, string> = {
@@ -26,8 +27,10 @@ const positionNames: Record<Position, string> = {
   W: 'West',
 };
 
-function PlayArea({ gameState, myPosition, onPlayCard }: PlayAreaProps) {
-  const currentTrick = gameState.cardPlay?.currentTrick;
+function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick }: PlayAreaProps) {
+  // Show last completed trick cards if we're in the delay period
+  const displayTrick = lastCompletedTrick || gameState.cardPlay?.currentTrick;
+  const currentTrick = displayTrick;
   const dummyPosition = gameState.cardPlay?.dummy;
   const declarerPosition = gameState.contract?.declarer;
 
@@ -47,18 +50,35 @@ function PlayArea({ gameState, myPosition, onPlayCard }: PlayAreaProps) {
       ? sortCards(gameState.hands[dummyPosition])
       : null;
 
-  // Position layout for compass display
-  const getPositionStyle = (position: Position) => {
-    switch (position) {
-      case Pos.NORTH:
-        return 'top-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center';
-      case Pos.EAST:
-        return 'right-4 top-1/2 transform -translate-y-1/2 flex flex-row-reverse items-center';
-      case Pos.SOUTH:
-        return 'bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col-reverse items-center';
-      case Pos.WEST:
-        return 'left-4 top-1/2 transform -translate-y-1/2 flex flex-row items-center';
+  // Map logical positions to visual positions based on myPosition
+  // The current player should always appear at the bottom
+  const getVisualPosition = (position: Position): 'top' | 'right' | 'bottom' | 'left' => {
+    if (!myPosition) {
+      // Default: South at bottom
+      const defaultMap: Record<Position, 'top' | 'right' | 'bottom' | 'left'> = {
+        N: 'top', E: 'right', S: 'bottom', W: 'left',
+      };
+      return defaultMap[position];
     }
+
+    // Rotation: myPosition -> bottom, then clockwise
+    const order: Position[] = [Pos.NORTH, Pos.EAST, Pos.SOUTH, Pos.WEST];
+    const myIndex = order.indexOf(myPosition);
+    const posIndex = order.indexOf(position);
+    const relativeIndex = (posIndex - myIndex + 4) % 4;
+    const visualPositions: ('bottom' | 'left' | 'top' | 'right')[] = ['bottom', 'left', 'top', 'right'];
+    return visualPositions[relativeIndex];
+  };
+
+  const visualPositionStyles: Record<string, string> = {
+    top: 'top-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center',
+    right: 'right-4 top-1/2 transform -translate-y-1/2 flex flex-row-reverse items-center',
+    bottom: 'bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col-reverse items-center',
+    left: 'left-4 top-1/2 transform -translate-y-1/2 flex flex-row items-center',
+  };
+
+  const getPositionStyle = (position: Position) => {
+    return visualPositionStyles[getVisualPosition(position)];
   };
 
   // Find card for each position in current trick
@@ -110,10 +130,11 @@ function PlayArea({ gameState, myPosition, onPlayCard }: PlayAreaProps) {
                     ? 'bg-deco-gold text-deco-navy ring-2 ring-deco-gold/50 ring-offset-2 ring-offset-deco-navy'
                     : 'bg-deco-midnight/80 text-deco-cream/80 border border-deco-gold/20'
                   }
-                  ${position === Pos.NORTH || position === Pos.SOUTH ? 'mb-2' : 'mx-2'}
+                  ${getVisualPosition(position) === 'top' || getVisualPosition(position) === 'bottom' ? 'mb-2' : 'mx-2'}
                 `}
               >
-                {position}
+                {gameState.players?.[position]?.name || positionNames[position]}
+                <span className="ml-1 opacity-50 text-[10px]">{position}</span>
                 {isDeclarer && <span className="ml-1 text-deco-gold-light">D</span>}
                 {isDummy && <span className="ml-1 opacity-60">*</span>}
               </div>

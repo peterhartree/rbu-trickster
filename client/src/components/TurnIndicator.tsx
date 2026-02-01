@@ -86,17 +86,14 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
 
         {/* Position badge */}
         {myPosition && (
-          <div
+          <p
             className={`
-              mt-4 px-4 py-2 rounded-full text-sm font-semibold tracking-wide
-              ${isMyTurn
-                ? 'bg-deco-navy/20 text-deco-navy border border-deco-navy/20'
-                : 'bg-deco-gold/10 text-deco-cream/80 border border-deco-gold/20'
-              }
+              mt-4 text-sm italic
+              ${isMyTurn ? 'text-deco-navy/60' : 'text-deco-cream/50'}
             `}
           >
             You are {positionNames[myPosition]}
-          </div>
+          </p>
         )}
 
         {/* Contract info during play phase */}

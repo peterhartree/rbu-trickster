@@ -40,7 +40,11 @@ export class GameRoom {
     };
   }
 
-  addPlayer(socketId: string, playerId?: string): Position {
+  isGameInProgress(): boolean {
+    return this.gameState.phase !== 'waiting';
+  }
+
+  addPlayer(socketId: string, playerId?: string, playerName?: string): Position {
     const positions: Position[] = [Pos.NORTH, Pos.EAST, Pos.SOUTH, Pos.WEST];
 
     // If playerId provided, check if this player was already in the room (reconnection)
@@ -51,6 +55,7 @@ export class GameRoom {
           // Reconnecting player - update their socket and mark connected
           existingPlayer.socketId = socketId;
           existingPlayer.connected = true;
+          if (playerName) existingPlayer.name = playerName;
           this.gameState.players[position] = existingPlayer;
           this.lastActivity = Date.now();
           console.log(`Player ${playerId} reconnected to position ${position} in room ${this.roomId}`);
@@ -70,6 +75,7 @@ export class GameRoom {
           socketId,
           position,
           connected: true,
+          name: playerName,
         };
 
         this.players[position] = player;
@@ -89,6 +95,7 @@ export class GameRoom {
           socketId,
           position,
           connected: true,
+          name: playerName,
         };
 
         this.players[position] = player;
@@ -255,8 +262,17 @@ export class GameRoom {
     // In COMPLETE phase, show all original hands for review
     const isReviewPhase = this.gameState.phase === Phase.COMPLETE;
 
+    // Strip socketId from player info sent to clients
+    const sanitisedPlayers: typeof this.gameState.players = {};
+    for (const [pos, player] of Object.entries(this.gameState.players)) {
+      if (player) {
+        sanitisedPlayers[pos as Position] = { ...player, socketId: '' };
+      }
+    }
+
     return {
       ...this.gameState,
+      players: sanitisedPlayers,
       // Include original deal for review phase
       originalHands: isReviewPhase && this.gameState.deal ? {
         [Pos.NORTH]: this.gameState.deal.north,

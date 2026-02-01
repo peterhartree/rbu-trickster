@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import type { Position, GameState, BidAction, Card, SessionScore } from '@bridge/shared';
+import type { Position, GameState, BidAction, Card, SessionScore, Trick } from '@bridge/shared';
 import WaitingRoom from './WaitingRoom';
 import BiddingPanel from './BiddingPanel';
 import PlayerHand from './PlayerHand';
@@ -65,6 +65,8 @@ function GameRoom() {
   const [showSAYCReference, setShowSAYCReference] = useState(false);
   const [showHandHistory, setShowHandHistory] = useState(false);
   const [sessionScore, setSessionScore] = useState<SessionScore | null>(null);
+  const [lastCompletedTrick, setLastCompletedTrick] = useState<Trick | null>(null);
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem('bridge_player_name') || '');
 
   useEffect(() => {
     if (!roomId) return;
@@ -81,7 +83,8 @@ function GameRoom() {
       console.log('Connected to server');
 
       // Join the room with our persistent player ID
-      newSocket.emit('room:join', { roomId, playerId }, (response: any) => {
+      const savedName = localStorage.getItem('bridge_player_name') || '';
+      newSocket.emit('room:join', { roomId, playerId, playerName: savedName }, (response: any) => {
         if (response.success) {
           setMyPosition(response.position);
           setPlayerCount(Object.keys(response.players || {}).length);
@@ -89,10 +92,13 @@ function GameRoom() {
           // Store session for reconnection
           storeSession(roomId, response.position, response.playerId || playerId);
 
-          // If we're reconnecting and game is in progress, request sync
-          if (storedSession) {
-            console.log('Reconnecting - requesting game state sync');
-            newSocket.emit('sync:request', { roomId });
+          // If game is in progress, restore state immediately from join response
+          if (response.gameInProgress && response.gameState) {
+            console.log('Reconnecting - restoring game state from join response');
+            setGameState(response.gameState);
+            if (response.gameState.session) {
+              setSessionScore(response.gameState.session);
+            }
           }
         } else {
           setError(response.error || 'Failed to join room');
@@ -121,7 +127,17 @@ function GameRoom() {
     });
 
     newSocket.on('trick:complete', (data: any) => {
-      setGameState(data.gameState);
+      // Show the completed trick for a moment before updating to new trick
+      const completedTrick = data.gameState?.cardPlay?.tricks?.slice(-1)[0];
+      if (completedTrick) {
+        setLastCompletedTrick(completedTrick);
+        setTimeout(() => {
+          setLastCompletedTrick(null);
+          setGameState(data.gameState);
+        }, 1500);
+      } else {
+        setGameState(data.gameState);
+      }
     });
 
     newSocket.on('hand:complete', (data: any) => {
@@ -201,6 +217,14 @@ function GameRoom() {
     }
   };
 
+  const handlePlayerNameChange = (name: string) => {
+    setPlayerName(name);
+    localStorage.setItem('bridge_player_name', name);
+    if (socket && roomId) {
+      socket.emit('player:set-name', { roomId, name });
+    }
+  };
+
   const handleNewSession = () => {
     if (socket && roomId) {
       socket.emit('session:new', { roomId });
@@ -237,15 +261,17 @@ function GameRoom() {
         playerCount={playerCount}
         isConnected={isConnected}
         onStartGame={handleStartGame}
+        playerName={playerName}
+        onPlayerNameChange={handlePlayerNameChange}
       />
     );
   }
 
   // Game in progress - Art Deco design
   return (
-    <div className="h-screen overflow-hidden bg-deco-navy flex flex-col p-3">
+    <div className="h-screen overflow-hidden bg-deco-navy flex flex-col p-2">
       {/* Art Deco Header */}
-      <header className="shrink-0 bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 px-5 py-3 mb-3">
+      <header className="shrink-0 bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 px-4 py-2 mb-2">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
             {/* Decorative element */}
@@ -292,13 +318,13 @@ function GameRoom() {
 
       {/* Session Score Display */}
       {sessionScore && (
-        <div className="shrink-0 mb-3">
+        <div className="shrink-0 mb-2">
           <SessionScoreDisplay session={sessionScore} />
         </div>
       )}
 
       {/* Main game area */}
-      <main className="flex-1 min-h-0 grid grid-cols-12 gap-3">
+      <main className="flex-1 min-h-0 grid grid-cols-12 gap-2">
         {gameState.phase === 'complete' ? (
           /* Hand Review - full width when complete */
           <div className="col-span-12">
@@ -327,7 +353,7 @@ function GameRoom() {
 
             {/* Centre column: Play area (6 cols) */}
             <div className="col-span-6">
-              <PlayArea gameState={gameState} myPosition={myPosition} onPlayCard={handlePlayCard} />
+              <PlayArea gameState={gameState} myPosition={myPosition} onPlayCard={handlePlayCard} lastCompletedTrick={lastCompletedTrick} />
             </div>
 
             {/* Right column: Turn indicator (3 cols) */}
@@ -340,7 +366,7 @@ function GameRoom() {
 
       {/* Footer: Player's hand (hidden during review) */}
       {myPosition && gameState.hands && gameState.phase !== 'complete' && (
-        <footer className="shrink-0 mt-3">
+        <footer className="shrink-0 mt-2">
           <PlayerHand
             hand={gameState.hands[myPosition] || []}
             myPosition={myPosition}

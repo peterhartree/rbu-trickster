@@ -26,13 +26,15 @@ export function setupSocketHandlers(io: Server) {
     });
 
     // Join room
-    socket.on(SOCKET_EVENTS.ROOM_JOIN, ({ roomId, playerId }, callback) => {
+    socket.on(SOCKET_EVENTS.ROOM_JOIN, ({ roomId, playerId, playerName }, callback) => {
       try {
-        const { position, players, playerId: assignedPlayerId } = gameManager.joinRoom(roomId, socket.id, playerId);
+        const { position, players, playerId: assignedPlayerId, gameInProgress } = gameManager.joinRoom(roomId, socket.id, playerId, playerName);
         socket.join(roomId);
 
-        // Notify joiner - include players count and their persistent playerId
-        callback({ success: true, position, players, playerId: assignedPlayerId });
+        // Notify joiner - include players count, their persistent playerId, and game state if reconnecting
+        const room = gameManager.getRoom(roomId);
+        const gameState = gameInProgress && room ? room.getStateForPlayer(position) : undefined;
+        callback({ success: true, position, players, playerId: assignedPlayerId, gameInProgress, gameState });
 
         // Notify others in room
         socket.to(roomId).emit(SOCKET_EVENTS.ROOM_PLAYER_JOINED, {
@@ -40,10 +42,30 @@ export function setupSocketHandlers(io: Server) {
           playerCount: Object.keys(players).length,
         });
 
-        console.log(`👤 Player joined room ${roomId} as ${position} (playerId: ${assignedPlayerId})`);
+        console.log(`👤 Player joined room ${roomId} as ${position} (playerId: ${assignedPlayerId}, reconnecting: ${gameInProgress})`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to join room';
         callback({ success: false, error: message });
+      }
+    });
+
+    // Set player name
+    socket.on('player:set-name', ({ roomId, name }: { roomId: string; name: string }) => {
+      try {
+        const room = gameManager.getRoom(roomId);
+        if (!room) return;
+        const position = room.getPlayerPosition(socket.id);
+        if (!position || !room.players[position]) return;
+        room.players[position]!.name = name;
+        room.getFullState().players[position] = room.players[position]!;
+
+        // Broadcast updated player info to all in room
+        io.to(roomId).emit('player:name-updated', {
+          position,
+          name,
+        });
+      } catch {
+        // Ignore errors for name updates
       }
     });
 

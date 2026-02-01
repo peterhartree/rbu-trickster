@@ -188,6 +188,7 @@ export interface Player {
   socketId: string;     // Current socket connection ID (changes on reconnect)
   position: Position;
   connected: boolean;
+  name?: string;        // Player display name
 }
 
 export interface GameState {

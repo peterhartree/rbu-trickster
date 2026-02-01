@@ -40,17 +40,17 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
   return (
     <div className="h-full flex flex-col bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 overflow-hidden">
       {/* Bidding sequence header */}
-      <div className="shrink-0 p-3 border-b border-deco-gold/20">
-        <h3 className="text-xs font-semibold text-deco-gold/70 tracking-widest uppercase mb-2">Bidding</h3>
-        <div className="flex space-x-2 overflow-x-auto bidding-scroll pb-1">
+      <div className="shrink-0 p-2 border-b border-deco-gold/20">
+        <h3 className="text-[10px] font-semibold text-deco-gold/70 tracking-widest uppercase mb-1">Bidding</h3>
+        <div className="flex flex-wrap gap-1">
           {gameState.bidding?.calls && gameState.bidding.calls.length > 0 ? (
             gameState.bidding.calls.map((call, index) => (
               <div
                 key={index}
-                className="shrink-0 bg-deco-navy rounded px-2 py-1 text-sm flex items-center space-x-1 border border-deco-gold/10"
+                className="shrink-0 bg-deco-cream/90 rounded px-2 py-1 text-sm flex items-center space-x-1 border border-deco-gold/30"
               >
-                <span className="font-mono text-xs text-deco-cream/50">{call.position}</span>
-                <span className={`font-display font-semibold ${call.action.type === 'BID' ? suitColors[call.action.strain] : 'text-deco-cream/70'}`}>
+                <span className="font-mono text-xs text-deco-navy/60">{call.position}</span>
+                <span className={`font-display font-semibold ${call.action.type === 'BID' ? suitColors[call.action.strain] : 'text-deco-navy/70'}`}>
                   {call.action.type === 'BID'
                     ? `${call.action.level}${suitSymbols[call.action.strain]}`
                     : call.action.type === 'PASS'
@@ -68,11 +68,11 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
       </div>
 
       {/* Bid grid - 7 columns x 5 rows */}
-      <div className="flex-1 p-3 overflow-y-auto">
-        <div className="grid grid-cols-7 gap-1">
+      <div className="flex-1 p-2 overflow-y-auto">
+        <div className="grid grid-cols-7 gap-0.5">
           {/* Header row - levels */}
           {levels.map((level) => (
-            <div key={`header-${level}`} className="text-center text-xs font-display font-semibold text-deco-gold/60 pb-1">
+            <div key={`header-${level}`} className="text-center text-[10px] font-display font-semibold text-deco-gold/60 pb-0.5">
               {level}
             </div>
           ))}
@@ -85,7 +85,7 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
                 onClick={() => handleBid(level, strain)}
                 disabled={!isMyTurn}
                 className={`
-                  py-1.5 rounded text-sm font-display font-bold transition-all border
+                  py-1 rounded text-xs font-display font-bold transition-all border
                   ${suitColors[strain]}
                   ${isMyTurn
                     ? 'bg-deco-cream border-deco-gold/30 hover:bg-deco-gold-light hover:border-deco-gold hover:scale-105 shadow-sm'
@@ -101,7 +101,7 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
       </div>
 
       {/* Special bids - Art Deco styled */}
-      <div className="shrink-0 p-3 border-t border-deco-gold/20 grid grid-cols-3 gap-2">
+      <div className="shrink-0 p-2 border-t border-deco-gold/20 grid grid-cols-3 gap-1">
         <button
           onClick={handlePass}
           disabled={!isMyTurn}

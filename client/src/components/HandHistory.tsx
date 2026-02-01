@@ -37,7 +37,7 @@ function HandHistory({ roomId, isOpen, onClose }: HandHistoryProps) {
 
   const fetchHistory = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/rooms/${roomId}/history`);
+      const response = await fetch(`/api/rooms/${roomId}/history`);
       const data = await response.json();
       setHands(data.hands || []);
       setLoading(false);
@@ -54,7 +54,7 @@ function HandHistory({ roomId, isOpen, onClose }: HandHistoryProps) {
 
   const handleDownloadPBN = async (handId: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/rooms/${roomId}/history/${handId}/pbn`);
+      const response = await fetch(`/api/rooms/${roomId}/history/${handId}/pbn`);
       const pbn = await response.text();
 
       // Create download link

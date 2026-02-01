@@ -6,6 +6,8 @@ interface WaitingRoomProps {
   playerCount: number;
   isConnected: boolean;
   onStartGame: () => void;
+  playerName: string;
+  onPlayerNameChange: (name: string) => void;
 }
 
 const positionData = [
@@ -21,6 +23,8 @@ function WaitingRoom({
   playerCount,
   isConnected,
   onStartGame,
+  playerName,
+  onPlayerNameChange,
 }: WaitingRoomProps) {
   return (
     <div className="min-h-screen bg-deco-navy flex items-center justify-center p-4">
@@ -48,11 +52,20 @@ function WaitingRoom({
           </span>
         </div>
 
-        {/* My position */}
+        {/* Name input */}
         {myPosition && (
           <div className="text-center mb-6">
-            <p className="text-deco-cream/80">
-              You are seated at{' '}
+            <label className="block text-sm text-deco-cream/60 mb-2">Your name</label>
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => onPlayerNameChange(e.target.value)}
+              placeholder="Enter your name"
+              className="bg-deco-navy border border-deco-gold/30 rounded px-4 py-2 text-deco-cream text-center font-display focus:border-deco-gold focus:outline-none w-48"
+              maxLength={20}
+            />
+            <p className="text-deco-cream/80 mt-2">
+              Seated at{' '}
               <span className="font-display font-bold text-deco-gold text-lg">
                 {positionData.find(p => p.position === myPosition)?.name}
               </span>
