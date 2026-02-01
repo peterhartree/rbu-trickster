@@ -17,6 +17,43 @@ import SessionScoreDisplay from './SessionScoreDisplay';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
   (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
+// Session storage key for player identity
+const PLAYER_ID_KEY = 'bridge_player_id';
+const SESSION_KEY_PREFIX = 'bridge_session_';
+
+// Get or create a persistent player ID
+function getOrCreatePlayerId(): string {
+  let playerId = localStorage.getItem(PLAYER_ID_KEY);
+  if (!playerId) {
+    playerId = `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem(PLAYER_ID_KEY, playerId);
+  }
+  return playerId;
+}
+
+// Store session info for a room
+function storeSession(roomId: string, position: Position, playerId: string) {
+  const session = { roomId, position, playerId, timestamp: Date.now() };
+  localStorage.setItem(`${SESSION_KEY_PREFIX}${roomId}`, JSON.stringify(session));
+}
+
+// Get stored session for a room
+function getStoredSession(roomId: string): { position: Position; playerId: string } | null {
+  try {
+    const data = localStorage.getItem(`${SESSION_KEY_PREFIX}${roomId}`);
+    if (data) {
+      const session = JSON.parse(data);
+      // Session valid for 24 hours
+      if (Date.now() - session.timestamp < 24 * 60 * 60 * 1000) {
+        return { position: session.position, playerId: session.playerId };
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
 function GameRoom() {
   const { roomId } = useParams<{ roomId: string }>();
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -32,6 +69,10 @@ function GameRoom() {
   useEffect(() => {
     if (!roomId) return;
 
+    // Get stored session or create new player ID
+    const storedSession = getStoredSession(roomId);
+    const playerId = storedSession?.playerId || getOrCreatePlayerId();
+
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
 
@@ -39,11 +80,20 @@ function GameRoom() {
       setIsConnected(true);
       console.log('Connected to server');
 
-      // Join the room
-      newSocket.emit('room:join', { roomId }, (response: any) => {
+      // Join the room with our persistent player ID
+      newSocket.emit('room:join', { roomId, playerId }, (response: any) => {
         if (response.success) {
           setMyPosition(response.position);
           setPlayerCount(Object.keys(response.players || {}).length);
+
+          // Store session for reconnection
+          storeSession(roomId, response.position, response.playerId || playerId);
+
+          // If we're reconnecting and game is in progress, request sync
+          if (storedSession) {
+            console.log('Reconnecting - requesting game state sync');
+            newSocket.emit('sync:request', { roomId });
+          }
         } else {
           setError(response.error || 'Failed to join room');
         }
@@ -101,6 +151,20 @@ function GameRoom() {
 
     newSocket.on('room:error', (data: any) => {
       setError(data.message);
+    });
+
+    // Handle sync response for reconnection
+    newSocket.on('sync:response', (data: any) => {
+      console.log('Received sync response:', data);
+      if (data.gameState) {
+        setGameState(data.gameState);
+        if (data.gameState.session) {
+          setSessionScore(data.gameState.session);
+        }
+      }
+      if (data.yourPosition) {
+        setMyPosition(data.yourPosition);
+      }
     });
 
     newSocket.on('disconnect', () => {

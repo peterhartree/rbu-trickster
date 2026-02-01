@@ -40,14 +40,33 @@ export class GameRoom {
     };
   }
 
-  addPlayer(socketId: string): Position {
+  addPlayer(socketId: string, playerId?: string): Position {
     const positions: Position[] = [Pos.NORTH, Pos.EAST, Pos.SOUTH, Pos.WEST];
+
+    // If playerId provided, check if this player was already in the room (reconnection)
+    if (playerId) {
+      for (const position of positions) {
+        const existingPlayer = this.players[position];
+        if (existingPlayer && existingPlayer.id === playerId) {
+          // Reconnecting player - update their socket and mark connected
+          existingPlayer.socketId = socketId;
+          existingPlayer.connected = true;
+          this.gameState.players[position] = existingPlayer;
+          this.lastActivity = Date.now();
+          console.log(`Player ${playerId} reconnected to position ${position} in room ${this.roomId}`);
+          return position;
+        }
+      }
+    }
+
+    // Generate a new playerId if not provided
+    const newPlayerId = playerId || `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     // First, try to find an empty position
     for (const position of positions) {
       if (!this.players[position]) {
         const player: Player = {
-          id: socketId,
+          id: newPlayerId,
           socketId,
           position,
           connected: true,
@@ -60,13 +79,13 @@ export class GameRoom {
       }
     }
 
-    // No empty positions - check for disconnected players to replace
+    // No empty positions - check for disconnected players to replace (only if no playerId match found above)
     for (const position of positions) {
       const existingPlayer = this.players[position];
       if (existingPlayer && !existingPlayer.connected) {
-        // Allow reconnection to this slot
+        // Allow takeover of abandoned slot
         const player: Player = {
-          id: socketId,
+          id: newPlayerId,
           socketId,
           position,
           connected: true,
@@ -75,12 +94,21 @@ export class GameRoom {
         this.players[position] = player;
         this.gameState.players[position] = player;
         this.lastActivity = Date.now();
-        console.log(`Player reconnected to position ${position} in room ${this.roomId}`);
+        console.log(`New player took over disconnected position ${position} in room ${this.roomId}`);
         return position;
       }
     }
 
     throw new Error('Room is full');
+  }
+
+  getPlayerById(playerId: string): Player | null {
+    for (const player of Object.values(this.players)) {
+      if (player?.id === playerId) {
+        return player;
+      }
+    }
+    return null;
   }
 
   getPlayerPosition(socketId: string): Position | null {

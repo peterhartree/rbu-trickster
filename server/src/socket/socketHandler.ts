@@ -26,13 +26,13 @@ export function setupSocketHandlers(io: Server) {
     });
 
     // Join room
-    socket.on(SOCKET_EVENTS.ROOM_JOIN, ({ roomId }, callback) => {
+    socket.on(SOCKET_EVENTS.ROOM_JOIN, ({ roomId, playerId }, callback) => {
       try {
-        const { position, players } = gameManager.joinRoom(roomId, socket.id);
+        const { position, players, playerId: assignedPlayerId } = gameManager.joinRoom(roomId, socket.id, playerId);
         socket.join(roomId);
 
-        // Notify joiner - include players count
-        callback({ success: true, position, players });
+        // Notify joiner - include players count and their persistent playerId
+        callback({ success: true, position, players, playerId: assignedPlayerId });
 
         // Notify others in room
         socket.to(roomId).emit(SOCKET_EVENTS.ROOM_PLAYER_JOINED, {
@@ -40,7 +40,7 @@ export function setupSocketHandlers(io: Server) {
           playerCount: Object.keys(players).length,
         });
 
-        console.log(`👤 Player joined room ${roomId} as ${position}`);
+        console.log(`👤 Player joined room ${roomId} as ${position} (playerId: ${assignedPlayerId})`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to join room';
         callback({ success: false, error: message });

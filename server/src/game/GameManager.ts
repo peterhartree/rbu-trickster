@@ -14,14 +14,15 @@ export class GameManager {
     return { roomId };
   }
 
-  joinRoom(roomId: string, socketId: string) {
+  joinRoom(roomId: string, socketId: string, playerId?: string) {
     const room = this.rooms.get(roomId);
     if (!room) {
       throw new Error('Room not found');
     }
 
-    const position = room.addPlayer(socketId);
-    return { position, players: room.players };
+    const position = room.addPlayer(socketId, playerId);
+    const player = room.players[position];
+    return { position, players: room.players, playerId: player?.id };
   }
 
   getRoom(roomId: string): GameRoom | undefined {

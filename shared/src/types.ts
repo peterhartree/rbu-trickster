@@ -184,8 +184,8 @@ export enum GamePhase {
 }
 
 export interface Player {
-  id: string;
-  socketId: string;
+  id: string;           // Persistent player UUID (survives reconnection)
+  socketId: string;     // Current socket connection ID (changes on reconnect)
   position: Position;
   connected: boolean;
 }

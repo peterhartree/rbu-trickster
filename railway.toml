@@ -1,3 +1,5 @@
+# Production URL: https://rbu-trickster-production.up.railway.app/
+
 [build]
 builder = "nixpacks"
 buildCommand = "yarn install && yarn workspace @bridge/shared build && yarn workspace @bridge/client build && yarn workspace @bridge/server build"
