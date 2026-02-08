@@ -75,6 +75,3 @@ yarn build
 3. Follow standard bridge rules with SAYC conventions
 4. Scores calculated using duplicate/IMP scoring
 
-## Licence
-
-Private project
