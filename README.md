@@ -78,12 +78,12 @@ yarn build
 ## Development status
 
 - [x] Phase 1: Project foundation
-- [ ] Phase 2: Core bridge logic
-- [ ] Phase 3: Real-time multiplayer
-- [ ] Phase 4: User interface
-- [ ] Phase 5: SAYC convention data
-- [ ] Phase 6: Hand history system
-- [ ] Phase 7: Polish and testing
+- [x] Phase 2: Core bridge logic
+- [x] Phase 3: Real-time multiplayer
+- [x] Phase 4: User interface
+- [x] Phase 5: SAYC convention data
+- [x] Phase 6: Hand history system
+- [x] Phase 7: Polish and testing
 
 ## Licence
 
