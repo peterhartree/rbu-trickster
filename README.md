@@ -75,16 +75,6 @@ yarn build
 3. Follow standard bridge rules with SAYC conventions
 4. Scores calculated using duplicate/IMP scoring
 
-## Development status
-
-- [x] Phase 1: Project foundation
-- [x] Phase 2: Core bridge logic
-- [x] Phase 3: Real-time multiplayer
-- [x] Phase 4: User interface
-- [x] Phase 5: SAYC convention data
-- [x] Phase 6: Hand history system
-- [x] Phase 7: Polish and testing
-
 ## Licence
 
 Private project
