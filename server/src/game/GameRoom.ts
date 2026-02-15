@@ -64,6 +64,12 @@ export class GameRoom {
       }
     }
 
+    // PlayerId was provided but didn't match any existing player
+    if (playerId) {
+      const existingIds = Object.entries(this.players).map(([pos, p]) => `${pos}:${p?.id}`).join(', ');
+      console.log(`Player ${playerId} not found in room ${this.roomId} (existing: ${existingIds})`);
+    }
+
     // Generate a new playerId if not provided
     const newPlayerId = playerId || `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -187,6 +193,11 @@ export class GameRoom {
     const currentPlayer = this.gameState.currentPlayer;
     const dummyPosition = this.gameState.cardPlay?.dummy;
     const declarerPosition = this.gameState.cardPlay?.declarer;
+
+    // Dummy cannot play cards directly — only the declarer controls dummy's hand
+    if (dummyPosition && socketPosition === dummyPosition && socketPosition !== declarerPosition) {
+      throw new Error('Dummy cannot play cards directly — declarer controls dummy\'s hand');
+    }
 
     if (
       dummyPosition &&

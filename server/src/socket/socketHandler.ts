@@ -42,6 +42,17 @@ export function setupSocketHandlers(io: Server) {
           playerCount: Object.keys(players).length,
         });
 
+        // After reconnection, broadcast full sanitised player list to all clients
+        if (gameInProgress && room) {
+          const sanitisedPlayers: Record<string, any> = {};
+          for (const [pos, player] of Object.entries(room.players)) {
+            if (player) {
+              sanitisedPlayers[pos] = { ...player, socketId: '' };
+            }
+          }
+          io.to(roomId).emit('player:updated', { players: sanitisedPlayers });
+        }
+
         console.log(`👤 Player joined room ${roomId} as ${position} (playerId: ${assignedPlayerId}, reconnecting: ${gameInProgress})`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to join room';

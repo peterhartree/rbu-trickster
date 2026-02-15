@@ -17,6 +17,13 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
   const currentBidder = gameState.currentBidder;
   const currentPlayer = gameState.currentPlayer;
 
+  // Helper: show "Name (East)" or just "East" if no name
+  const getDisplayName = (position: Position | undefined | null): string => {
+    if (!position) return '...';
+    const name = gameState.players?.[position]?.name;
+    return name ? `${name} (${positionNames[position]})` : positionNames[position];
+  };
+
   // Determine whose turn it is based on phase
   const currentTurn = phase === 'bidding' ? currentBidder : currentPlayer;
   const isMyTurn = currentTurn === myPosition;
@@ -27,13 +34,13 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
 
   if (phase === 'complete') {
     return (
-      <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 p-6 animate-fade-in-up deco-corner">
+      <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 p-4 animate-fade-in-up deco-corner">
         <div className="flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-full bg-deco-gold/20 flex items-center justify-center mb-4 border border-deco-gold/30">
-            <CheckIcon className="w-8 h-8 text-deco-gold" />
+          <div className="w-12 h-12 rounded-full bg-deco-gold/20 flex items-center justify-center mb-3 border border-deco-gold/30">
+            <CheckIcon className="w-6 h-6 text-deco-gold" />
           </div>
-          <h2 className="text-xl font-display font-bold text-deco-gold mb-2">Hand Complete</h2>
-          <p className="text-deco-cream/60">View the score to see results</p>
+          <h2 className="text-lg font-display font-bold text-deco-gold mb-1">Hand Complete</h2>
+          <p className="text-sm text-deco-cream/60">View the score to see results</p>
         </div>
       </div>
     );
@@ -42,7 +49,7 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
   return (
     <div
       className={`
-        rounded-lg shadow-deco p-6 transition-all duration-300 animate-fade-in-up
+        rounded-lg shadow-deco p-4 transition-all duration-300 animate-fade-in-up
         ${isMyTurn
           ? 'bg-gradient-to-br from-deco-gold via-deco-gold to-deco-gold-light animate-pulse-glow border-2 border-deco-gold-light'
           : 'bg-deco-midnight border border-deco-gold/20 deco-corner'
@@ -53,7 +60,7 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
         {/* Icon */}
         <div
           className={`
-            w-16 h-16 rounded-full flex items-center justify-center mb-4 border
+            w-12 h-12 rounded-full flex items-center justify-center mb-3 border
             ${isMyTurn
               ? 'bg-deco-navy/30 border-deco-navy/30 animate-bounce-subtle'
               : 'bg-deco-gold/10 border-deco-gold/20'
@@ -61,7 +68,7 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
           `}
         >
           <ActionIcon
-            className={`w-8 h-8 ${isMyTurn ? 'text-deco-navy' : 'text-deco-gold/70'}`}
+            className={`w-6 h-6 ${isMyTurn ? 'text-deco-navy' : 'text-deco-gold/70'}`}
           />
         </div>
 
@@ -76,24 +83,12 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
         ) : (
           <>
             <h2 className="text-xl font-display font-bold text-deco-gold mb-2">
-              Waiting for {currentTurn ? positionNames[currentTurn] : '...'}
+              Waiting for {getDisplayName(currentTurn)}
             </h2>
             <p className="text-deco-cream/60">
-              {currentTurn ? `${positionNames[currentTurn]} is choosing their ${actionText}` : 'Loading...'}
+              {currentTurn ? `Choosing their ${actionText}` : 'Loading...'}
             </p>
           </>
-        )}
-
-        {/* Position badge */}
-        {myPosition && (
-          <p
-            className={`
-              mt-4 text-sm italic
-              ${isMyTurn ? 'text-deco-navy/60' : 'text-deco-cream/50'}
-            `}
-          >
-            You are {positionNames[myPosition]}
-          </p>
         )}
 
         {/* Contract info during play phase */}
@@ -113,7 +108,7 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
               {gameState.contract.doubled && 'X'}
               {gameState.contract.redoubled && 'XX'}
               {' by '}
-              {positionNames[gameState.contract.declarer]}
+              {getDisplayName(gameState.contract.declarer)}
             </p>
           </div>
         )}

@@ -1,6 +1,17 @@
-import type { Card as CardType, Position, GameState, Suit } from '@bridge/shared';
-import { Suit as SuitEnum } from '@bridge/shared';
+import type { Card as CardType, Position, GameState, Suit, Rank } from '@bridge/shared';
+import { Suit as SuitEnum, Rank as RankEnum } from '@bridge/shared';
 import Card from './Card';
+
+const hcpValues: Partial<Record<Rank, number>> = {
+  [RankEnum.ACE]: 4,
+  [RankEnum.KING]: 3,
+  [RankEnum.QUEEN]: 2,
+  [RankEnum.JACK]: 1,
+};
+
+function calculateHCP(hand: CardType[]): number {
+  return hand.reduce((total, card) => total + (hcpValues[card.rank] || 0), 0);
+}
 
 interface PlayerHandProps {
   hand: CardType[];
@@ -32,9 +43,9 @@ function PlayerHand({ hand, myPosition, gameState, onPlayCard }: PlayerHandProps
   };
 
   return (
-    <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 px-4 py-4">
+    <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 px-4 py-3">
       {/* Gold accent line above cards */}
-      <div className="h-px bg-gradient-to-r from-transparent via-deco-gold/30 to-transparent mb-4" />
+      <div className="h-px bg-gradient-to-r from-transparent via-deco-gold/30 to-transparent mb-3" />
 
       <div className="flex items-end justify-center min-h-[100px]">
         {/* Cards in fan layout */}
@@ -57,6 +68,7 @@ function PlayerHand({ hand, myPosition, gameState, onPlayCard }: PlayerHandProps
                   card={card}
                   onClick={() => onPlayCard(card)}
                   disabled={!isMyTurn}
+                  dimmed={gameState.phase === 'playing' && !isMyTurn}
                   size="md"
                   rotation={rotation}
                   animationDelay={index * 50}
@@ -70,10 +82,13 @@ function PlayerHand({ hand, myPosition, gameState, onPlayCard }: PlayerHandProps
         </div>
       </div>
 
-      {/* Card count with elegant styling */}
-      <div className="text-center mt-3 text-xs text-deco-cream/50 tracking-wide">
+      {/* HCP and card count */}
+      <div className="text-center mt-2 text-xs text-deco-cream/50 tracking-wide">
+        <span className="font-display text-deco-gold/70">{calculateHCP(hand)}</span>
+        <span className="ml-1">HCP</span>
+        <span className="mx-1.5 text-deco-gold/30">|</span>
         <span className="font-display text-deco-gold/70">{hand.length}</span>
-        <span className="ml-1">card{hand.length !== 1 ? 's' : ''} remaining</span>
+        <span className="ml-1">cards</span>
       </div>
     </div>
   );

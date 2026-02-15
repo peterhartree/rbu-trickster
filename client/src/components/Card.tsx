@@ -5,6 +5,7 @@ interface CardProps {
   card: CardType;
   onClick?: () => void;
   disabled?: boolean;
+  dimmed?: boolean;
   size?: 'sm' | 'md' | 'lg';
   elevated?: boolean;
   faceDown?: boolean;
@@ -42,6 +43,141 @@ const rankDisplay: Record<Rank, string> = {
   [R.ACE]: 'A',
 };
 
+// Suit fill colours for SVG figures
+const suitFillColors: Record<Suit, string> = {
+  [S.SPADES]: '#1a1a2e',
+  [S.HEARTS]: '#c41e3a',
+  [S.DIAMONDS]: '#d97706',
+  [S.CLUBS]: '#059669',
+};
+
+// Art Deco face card figures
+function QueenFigure({ color, small }: { color: string; small?: boolean }) {
+  if (small) {
+    // Simplified silhouette for sm cards
+    return (
+      <svg viewBox="0 0 40 60" className="w-6 h-9 opacity-80">
+        <circle cx="20" cy="10" r="5" fill={color} opacity="0.8" />
+        <path d="M14 16 Q20 14 26 16 L24 40 Q20 42 16 40 Z" fill={color} opacity="0.7" />
+        <path d="M16 40 Q14 50 12 55 L28 55 Q26 50 24 40" fill={color} opacity="0.6" />
+        {/* Crown/headpiece */}
+        <path d="M15 6 L20 2 L25 6" stroke={color} strokeWidth="1.5" fill="none" opacity="0.8" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 50 80" className="w-8 h-12 opacity-85">
+      {/* Headpiece - Art Deco fan crown */}
+      <path d="M19 10 L25 3 L31 10" stroke={color} strokeWidth="1.5" fill="none" />
+      <path d="M22 8 L25 5 L28 8" fill={color} opacity="0.5" />
+      <line x1="25" y1="3" x2="25" y2="1" stroke={color} strokeWidth="1" />
+      <circle cx="25" cy="1" r="1" fill={color} opacity="0.7" />
+      {/* Head */}
+      <ellipse cx="25" cy="15" rx="6" ry="7" fill={color} opacity="0.75" />
+      {/* Neck */}
+      <rect x="23" y="21" width="4" height="4" fill={color} opacity="0.6" />
+      {/* Shoulders - broad geometric Art Deco */}
+      <path d="M12 28 Q18 24 25 25 Q32 24 38 28 L36 32 Q25 30 14 32 Z" fill={color} opacity="0.65" />
+      {/* Bodice - geometric gown */}
+      <path d="M14 32 Q16 35 18 50 Q20 52 25 53 Q30 52 32 50 Q34 35 36 32" fill={color} opacity="0.6" />
+      {/* Flowing skirt - elongated, leggy silhouette */}
+      <path d="M18 50 Q15 58 12 72 L22 72 Q24 60 25 53 Q26 60 28 72 L38 72 Q35 58 32 50" fill={color} opacity="0.55" />
+      {/* Decorative waist sash */}
+      <path d="M17 38 Q25 36 33 38" stroke={color} strokeWidth="1" fill="none" opacity="0.8" />
+      <path d="M17 39 Q25 37 33 39" stroke={color} strokeWidth="0.5" fill="none" opacity="0.5" />
+      {/* Geometric arm accents */}
+      <line x1="14" y1="32" x2="10" y2="44" stroke={color} strokeWidth="1.5" opacity="0.5" />
+      <line x1="36" y1="32" x2="40" y2="44" stroke={color} strokeWidth="1.5" opacity="0.5" />
+    </svg>
+  );
+}
+
+function KingFigure({ color, small }: { color: string; small?: boolean }) {
+  if (small) {
+    return (
+      <svg viewBox="0 0 40 60" className="w-6 h-9 opacity-80">
+        <circle cx="20" cy="10" r="5" fill={color} opacity="0.8" />
+        <path d="M12 16 Q20 14 28 16 L26 45 Q20 47 14 45 Z" fill={color} opacity="0.7" />
+        {/* Crown */}
+        <path d="M14 6 L17 2 L20 5 L23 2 L26 6" stroke={color} strokeWidth="1.5" fill={color} opacity="0.4" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 50 80" className="w-8 h-12 opacity-85">
+      {/* Crown - Art Deco angular */}
+      <path d="M15 12 L18 4 L22 9 L25 2 L28 9 L32 4 L35 12 Z" fill={color} opacity="0.5" />
+      <path d="M15 12 L35 12" stroke={color} strokeWidth="1.5" />
+      <circle cx="25" cy="2" r="1.5" fill={color} opacity="0.7" />
+      {/* Head */}
+      <ellipse cx="25" cy="18" rx="6.5" ry="7" fill={color} opacity="0.75" />
+      {/* Neck */}
+      <rect x="22" y="24" width="6" height="3" fill={color} opacity="0.6" />
+      {/* Broad geometric shoulders with epaulettes */}
+      <path d="M8 32 Q14 26 25 27 Q36 26 42 32 L40 36 Q25 33 10 36 Z" fill={color} opacity="0.65" />
+      {/* Angular cape/robe */}
+      <path d="M10 36 L13 68 Q25 72 37 68 L40 36" fill={color} opacity="0.55" />
+      {/* Centre panel on robe */}
+      <path d="M21 36 L21 68 Q25 70 29 68 L29 36" fill={color} opacity="0.35" />
+      {/* Belt */}
+      <rect x="12" y="44" width="26" height="2" fill={color} opacity="0.7" />
+      <rect x="23" y="42" width="4" height="6" rx="1" fill={color} opacity="0.5" />
+      {/* Shoulder decorations */}
+      <circle cx="12" cy="33" r="2" fill={color} opacity="0.5" />
+      <circle cx="38" cy="33" r="2" fill={color} opacity="0.5" />
+    </svg>
+  );
+}
+
+function JackFigure({ color, small }: { color: string; small?: boolean }) {
+  if (small) {
+    return (
+      <svg viewBox="0 0 40 60" className="w-6 h-9 opacity-80">
+        <circle cx="20" cy="10" r="5" fill={color} opacity="0.8" />
+        <path d="M14 16 Q20 14 26 16 L24 45 Q20 47 16 45 Z" fill={color} opacity="0.65" />
+        {/* Cap */}
+        <path d="M16 7 Q20 3 24 7" stroke={color} strokeWidth="1.5" fill="none" opacity="0.7" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 50 80" className="w-8 h-12 opacity-85">
+      {/* Rakish cap/beret */}
+      <path d="M17 12 Q20 6 32 8 L34 11 Q25 9 17 12 Z" fill={color} opacity="0.6" />
+      <circle cx="32" cy="8" r="1.5" fill={color} opacity="0.5" />
+      {/* Head - in slight profile */}
+      <ellipse cx="25" cy="17" rx="6" ry="6.5" fill={color} opacity="0.75" />
+      {/* Neck */}
+      <rect x="23" y="23" width="4" height="3" fill={color} opacity="0.6" />
+      {/* Collar - turned up, dynamic */}
+      <path d="M18 27 Q25 25 32 27 L34 30 Q25 28 16 30 Z" fill={color} opacity="0.7" />
+      {/* Sleek tunic - shorter than king, more dynamic */}
+      <path d="M16 30 Q17 40 18 55 Q25 58 32 55 Q33 40 34 30" fill={color} opacity="0.6" />
+      {/* Legs - visible below shorter tunic */}
+      <path d="M18 55 L16 72 L21 72 L22 55" fill={color} opacity="0.5" />
+      <path d="M28 55 L29 72 L34 72 L32 55" fill={color} opacity="0.5" />
+      {/* Belt with dagger */}
+      <path d="M17 40 Q25 38 33 40" stroke={color} strokeWidth="1.5" fill="none" opacity="0.7" />
+      <line x1="33" y1="40" x2="36" y2="48" stroke={color} strokeWidth="1" opacity="0.5" />
+      {/* Dynamic arm pose */}
+      <line x1="16" y1="30" x2="10" y2="42" stroke={color} strokeWidth="2" opacity="0.5" />
+      <line x1="34" y1="30" x2="38" y2="38" stroke={color} strokeWidth="2" opacity="0.5" />
+    </svg>
+  );
+}
+
+const isFaceCard = (rank: Rank): boolean => rank === R.JACK || rank === R.QUEEN || rank === R.KING;
+
+function FaceCardFigure({ rank, suit, small }: { rank: Rank; suit: Suit; small?: boolean }) {
+  const color = suitFillColors[suit];
+  switch (rank) {
+    case R.QUEEN: return <QueenFigure color={color} small={small} />;
+    case R.KING: return <KingFigure color={color} small={small} />;
+    case R.JACK: return <JackFigure color={color} small={small} />;
+    default: return null;
+  }
+}
+
 const sizeClasses = {
   sm: {
     card: 'w-10 h-14',
@@ -73,6 +209,7 @@ function Card({
   card,
   onClick,
   disabled = false,
+  dimmed = false,
   size = 'md',
   elevated = false,
   faceDown = false,
@@ -151,8 +288,8 @@ function Card({
         animationDelay: `${animationDelay}ms`,
       }}
     >
-      {/* Dark overlay when disabled (card stays fully opaque) */}
-      {disabled && (
+      {/* Dark overlay when dimmed (card stays fully opaque) */}
+      {dimmed && (
         <div className="absolute inset-0 rounded-lg bg-deco-navy/40 pointer-events-none z-10" />
       )}
 
@@ -165,11 +302,15 @@ function Card({
         <span className={classes.suit}>{suitSymbols[card.suit]}</span>
       </div>
 
-      {/* Centre suit (large) */}
+      {/* Centre: face card figure or suit symbol */}
       <div className={`absolute inset-0 flex items-center justify-center ${colorClass}`}>
-        <span className={`${classes.centreSuit} opacity-90`}>
-          {suitSymbols[card.suit]}
-        </span>
+        {isFaceCard(card.rank) ? (
+          <FaceCardFigure rank={card.rank} suit={card.suit} small={size === 'sm'} />
+        ) : (
+          <span className={`${classes.centreSuit} opacity-90`}>
+            {suitSymbols[card.suit]}
+          </span>
+        )}
       </div>
 
       {/* Bottom-right pip (rotated 180deg) */}

@@ -27,6 +27,13 @@ const positionNames: Record<Position, string> = {
   W: 'West',
 };
 
+// Helper: show "Name (East)" or just "East" if no name
+function getDisplayName(gameState: Partial<GameState>, position: Position | undefined | null): string {
+  if (!position) return '...';
+  const name = gameState.players?.[position]?.name;
+  return name ? `${name} (${positionNames[position]})` : positionNames[position];
+}
+
 function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick }: PlayAreaProps) {
   // Show last completed trick cards if we're in the delay period
   const displayTrick = lastCompletedTrick || gameState.cardPlay?.currentTrick;
@@ -108,7 +115,7 @@ function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick }: Pla
           {currentTrick && currentTrick.cards.length === 0 && (
             <div className="bg-deco-midnight/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-deco-gold/20">
               <p className="font-display font-semibold text-sm text-deco-gold">Trick {currentTrick.number}</p>
-              <p className="text-xs text-deco-cream/60">Lead: {positionNames[currentTrick.leader]}</p>
+              <p className="text-xs text-deco-cream/60">Lead: {getDisplayName(gameState, currentTrick.leader)}</p>
             </div>
           )}
         </div>
@@ -127,8 +134,8 @@ function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick }: Pla
                 className={`
                   px-3 py-1 rounded text-xs font-semibold tracking-wide transition-all
                   ${isCurrentPlayer
-                    ? 'bg-deco-gold text-deco-navy ring-2 ring-deco-gold/50 ring-offset-2 ring-offset-deco-navy'
-                    : 'bg-deco-midnight/80 text-deco-cream/80 border border-deco-gold/20'
+                    ? 'bg-deco-gold text-deco-navy ring-2 ring-deco-gold/50 ring-offset-2 ring-offset-deco-navy animate-pulse-glow'
+                    : 'bg-deco-midnight/80 text-deco-cream/60 border border-deco-gold/20'
                   }
                   ${getVisualPosition(position) === 'top' || getVisualPosition(position) === 'bottom' ? 'mb-2' : 'mx-2'}
                 `}
@@ -154,7 +161,7 @@ function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick }: Pla
           <div className="bg-deco-accent/20 rounded-lg p-3 border border-deco-gold/20">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-deco-gold tracking-widest uppercase">
-                Dummy ({positionNames[dummyPosition]})
+                Dummy — {getDisplayName(gameState, dummyPosition)}
               </span>
               <span className="text-xs text-deco-cream/50">{dummyHand.length} cards</span>
             </div>
@@ -165,6 +172,7 @@ function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick }: Pla
                   card={card}
                   size="sm"
                   disabled={!canPlayDummyCards}
+                  dimmed={!canPlayDummyCards}
                   onClick={canPlayDummyCards ? () => onPlayCard(card) : undefined}
                 />
               ))}
@@ -173,19 +181,6 @@ function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick }: Pla
         </div>
       )}
 
-      {/* Tricks won - Art Deco style */}
-      {gameState.cardPlay && (
-        <div className="shrink-0 grid grid-cols-2 gap-2 px-2 pb-2">
-          <div className="bg-deco-accent/30 rounded px-3 py-2 flex items-center justify-between border border-deco-gold/10">
-            <span className="text-xs font-semibold text-deco-cream/70 tracking-wide">N-S</span>
-            <span className="text-lg font-display font-bold text-deco-gold">{gameState.cardPlay.nsTricks}</span>
-          </div>
-          <div className="bg-deco-accent/30 rounded px-3 py-2 flex items-center justify-between border border-deco-gold/10">
-            <span className="text-xs font-semibold text-deco-cream/70 tracking-wide">E-W</span>
-            <span className="text-lg font-display font-bold text-deco-gold">{gameState.cardPlay.ewTricks}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

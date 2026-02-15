@@ -26,8 +26,17 @@ const suitColors: Record<Strain, string> = {
 const strainOrder: Strain[] = [Strn.CLUBS, Strn.DIAMONDS, Strn.HEARTS, Strn.SPADES, Strn.NO_TRUMP];
 const levels: BidLevel[] = [1, 2, 3, 4, 5, 6, 7] as BidLevel[];
 
+const positionNames: Record<string, string> = {
+  N: 'North', E: 'East', S: 'South', W: 'West',
+};
+
 function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) {
   const isMyTurn = gameState.currentBidder === myPosition;
+
+  const getShortName = (position: string): string => {
+    const name = gameState.players?.[position as keyof typeof gameState.players]?.name;
+    return name ? `${name.split(' ')[0]}` : position;
+  };
 
   const handleBid = (level: BidLevel, strain: Strain) => {
     onPlaceBid({ type: 'BID', level, strain });
@@ -49,7 +58,7 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
                 key={index}
                 className="shrink-0 bg-deco-cream/90 rounded px-2 py-1 text-sm flex items-center space-x-1 border border-deco-gold/30"
               >
-                <span className="font-mono text-xs text-deco-navy/60">{call.position}</span>
+                <span className="font-mono text-xs text-deco-navy/60">{getShortName(call.position)}</span>
                 <span className={`font-display font-semibold ${call.action.type === 'BID' ? suitColors[call.action.strain] : 'text-deco-navy/70'}`}>
                   {call.action.type === 'BID'
                     ? `${call.action.level}${suitSymbols[call.action.strain]}`
@@ -153,7 +162,11 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
             {gameState.contract.doubled && ' X'}
             {gameState.contract.redoubled && ' XX'}
             <span className="text-sm font-sans font-normal text-deco-cream/60 ml-2">
-              by {gameState.contract.declarer}
+              by {(() => {
+                const name = gameState.players?.[gameState.contract!.declarer]?.name;
+                const posName = positionNames[gameState.contract!.declarer];
+                return name ? `${name} (${posName})` : posName;
+              })()}
             </span>
           </p>
         </div>

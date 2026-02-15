@@ -11,7 +11,7 @@ import SAYCReference from './SAYCReference';
 import HandHistory from './HandHistory';
 import TurnIndicator from './TurnIndicator';
 import HandReview from './HandReview';
-import SessionScoreDisplay from './SessionScoreDisplay';
+import { useSoundEffects } from '../hooks/useSoundEffects';
 
 // In production (same domain), use relative URL; in dev, use localhost
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
@@ -67,6 +67,7 @@ function GameRoom() {
   const [sessionScore, setSessionScore] = useState<SessionScore | null>(null);
   const [lastCompletedTrick, setLastCompletedTrick] = useState<Trick | null>(null);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('bridge_player_name') || '');
+  const { cardPlayed: playCardSound, yourTurn: playYourTurnSound, trickWon: playTrickWonSound, bidPlaced: playBidSound } = useSoundEffects();
 
   useEffect(() => {
     if (!roomId) return;
@@ -120,13 +121,16 @@ function GameRoom() {
 
     newSocket.on('bid:made', (data: any) => {
       setGameState(data.gameState);
+      playBidSound();
     });
 
     newSocket.on('card:played', (data: any) => {
       setGameState(data.gameState);
+      playCardSound();
     });
 
     newSocket.on('trick:complete', (data: any) => {
+      playTrickWonSound();
       // Show the completed trick for a moment before updating to new trick
       const completedTrick = data.gameState?.cardPlay?.tricks?.slice(-1)[0];
       if (completedTrick) {
@@ -165,6 +169,29 @@ function GameRoom() {
       }
     });
 
+    // Keep player info in sync on reconnection or name changes
+    newSocket.on('player:updated', (data: any) => {
+      if (data.players) {
+        setGameState((prev) => prev ? { ...prev, players: data.players } : prev);
+      }
+    });
+
+    newSocket.on('player:name-updated', (data: any) => {
+      if (data.position && data.name !== undefined) {
+        const pos = data.position as Position;
+        setGameState((prev) => {
+          if (!prev?.players) return prev;
+          return {
+            ...prev,
+            players: {
+              ...prev.players,
+              [pos]: { ...prev.players[pos], name: data.name },
+            },
+          };
+        });
+      }
+    });
+
     newSocket.on('room:error', (data: any) => {
       setError(data.message);
     });
@@ -191,7 +218,16 @@ function GameRoom() {
     return () => {
       newSocket.disconnect();
     };
-  }, [roomId]);
+  }, [roomId, playBidSound, playCardSound, playTrickWonSound]);
+
+  // Play sound when it becomes your turn
+  useEffect(() => {
+    if (!gameState || !myPosition) return;
+    const currentTurn = gameState.phase === 'bidding' ? gameState.currentBidder : gameState.currentPlayer;
+    if (currentTurn === myPosition) {
+      playYourTurnSound();
+    }
+  }, [gameState?.currentBidder, gameState?.currentPlayer, myPosition, playYourTurnSound, gameState?.phase]);
 
   const handleStartGame = () => {
     if (socket && roomId) {
@@ -269,65 +305,71 @@ function GameRoom() {
 
   // Game in progress - Art Deco design
   return (
-    <div className="h-screen overflow-hidden bg-deco-navy flex flex-col p-2">
-      {/* Art Deco Header */}
-      <header className="shrink-0 bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 px-4 py-2 mb-2">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            {/* Decorative element */}
-            <div className="hidden sm:flex items-center space-x-1">
-              <div className="w-2 h-2 bg-deco-gold rotate-45" />
-              <div className="w-1 h-6 bg-gradient-to-b from-deco-gold to-transparent" />
-            </div>
-            <div>
-              <h1 className="text-xl font-display font-bold text-deco-gold tracking-wide">
-                RBU Trickster
-              </h1>
-              <p className="text-xs text-deco-cream/60 tracking-widest uppercase">
-                Room <span className="font-mono text-deco-gold/80">{roomId}</span>
-              </p>
-            </div>
+    <div className="h-screen overflow-y-auto md:overflow-hidden bg-deco-navy flex flex-col p-2">
+      {/* Compact header with session info */}
+      <header className="shrink-0 bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 px-3 py-1.5 mb-2">
+        <div className="flex items-center justify-between gap-3">
+          {/* Title */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-2 h-2 bg-deco-gold rotate-45 hidden sm:block" />
+            <h1 className="text-lg font-display font-bold text-deco-gold tracking-wide">
+              RBU Trickster
+            </h1>
           </div>
 
-          <div className="flex items-center space-x-3">
+          {/* Session score inline */}
+          {sessionScore && (
+            <div className="flex items-center gap-3 flex-1 justify-center">
+              <span className="text-xs text-deco-cream/50">Hand {sessionScore.handNumber}/{sessionScore.totalHands}</span>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: sessionScore.totalHands }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-2 h-2 rounded-full ${
+                      i < sessionScore.handNumber ? 'bg-deco-gold' : 'bg-deco-navy border border-deco-gold/30'
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className={`font-display font-bold ${sessionScore.nsTotal >= sessionScore.ewTotal ? 'text-deco-gold' : 'text-deco-cream/70'}`}>
+                  NS {sessionScore.nsTotal}
+                </span>
+                <span className="text-deco-gold/30">·</span>
+                <span className={`font-display font-bold ${sessionScore.ewTotal > sessionScore.nsTotal ? 'text-deco-gold' : 'text-deco-cream/70'}`}>
+                  EW {sessionScore.ewTotal}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Controls */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowHandHistory(true)}
-              className="bg-deco-accent hover:bg-deco-accent/80 text-deco-cream text-sm font-semibold py-1.5 px-4 rounded border border-deco-gold/20 transition-colors"
+              className="bg-deco-accent hover:bg-deco-accent/80 text-deco-cream text-xs font-semibold py-1 px-3 rounded border border-deco-gold/20 transition-colors"
             >
               History
             </button>
             <button
               onClick={() => setShowSAYCReference(true)}
-              className="bg-deco-accent hover:bg-deco-accent/80 text-deco-cream text-sm font-semibold py-1.5 px-4 rounded border border-deco-gold/20 transition-colors"
+              className="bg-deco-accent hover:bg-deco-accent/80 text-deco-cream text-xs font-semibold py-1 px-3 rounded border border-deco-gold/20 transition-colors"
             >
               SAYC
             </button>
-            <div className="flex items-center space-x-2 px-3 py-1.5 bg-deco-navy/50 rounded border border-deco-gold/10">
-              <div
-                className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}
-              />
-              <span className="text-xs text-deco-cream/60">
-                {isConnected ? 'Live' : 'Offline'}
-              </span>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-deco-navy/50 rounded border border-deco-gold/10">
+              <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} />
+              <span className="text-[10px] text-deco-cream/60">{isConnected ? 'Live' : 'Offline'}</span>
             </div>
           </div>
         </div>
-        {/* Gold underline accent */}
-        <div className="mt-3 h-px bg-gradient-to-r from-transparent via-deco-gold/40 to-transparent" />
       </header>
 
-      {/* Session Score Display */}
-      {sessionScore && (
-        <div className="shrink-0 mb-2">
-          <SessionScoreDisplay session={sessionScore} />
-        </div>
-      )}
-
       {/* Main game area */}
-      <main className="flex-1 min-h-0 grid grid-cols-12 gap-2">
+      <main className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2">
         {gameState.phase === 'complete' ? (
           /* Hand Review - full width when complete */
-          <div className="col-span-12">
+          <div className="md:col-span-12">
             <HandReview
               gameState={gameState}
               sessionScore={sessionScore}
@@ -337,8 +379,8 @@ function GameRoom() {
           </div>
         ) : (
           <>
-            {/* Left column: Bidding/Score (3 cols) */}
-            <div className="col-span-3 overflow-y-auto">
+            {/* Left column: Bidding/Score */}
+            <div className="md:col-span-3 overflow-y-auto">
               {gameState.phase === 'bidding' && (
                 <BiddingPanel
                   gameState={gameState}
@@ -351,13 +393,13 @@ function GameRoom() {
               )}
             </div>
 
-            {/* Centre column: Play area (6 cols) */}
-            <div className="col-span-6">
+            {/* Centre column: Play area */}
+            <div className="md:col-span-6">
               <PlayArea gameState={gameState} myPosition={myPosition} onPlayCard={handlePlayCard} lastCompletedTrick={lastCompletedTrick} />
             </div>
 
-            {/* Right column: Turn indicator (3 cols) */}
-            <div className="col-span-3">
+            {/* Right column: Turn indicator */}
+            <div className="md:col-span-3">
               <TurnIndicator gameState={gameState} myPosition={myPosition} />
             </div>
           </>

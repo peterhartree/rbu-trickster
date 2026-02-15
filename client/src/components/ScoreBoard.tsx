@@ -1,5 +1,12 @@
-import type { GameState, Strain } from '@bridge/shared';
+import type { GameState, Strain, Position } from '@bridge/shared';
 import { Strain as Strn } from '@bridge/shared';
+
+const positionNames: Record<Position, string> = {
+  N: 'North',
+  E: 'East',
+  S: 'South',
+  W: 'West',
+};
 
 interface ScoreBoardProps {
   gameState: Partial<GameState>;
@@ -18,30 +25,70 @@ function ScoreBoard({ gameState }: ScoreBoardProps) {
   const score = gameState.score;
   const result = gameState.result;
 
+  // Helper: show "Name (East)" or just "East" if no name
+  const getDisplayName = (position: string): string => {
+    const name = gameState.players?.[position as keyof typeof gameState.players]?.name;
+    const posName = positionNames[position as keyof typeof positionNames];
+    return name ? `${name} (${posName})` : posName || position;
+  };
+
   if (!contract) {
     return (
-      <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 p-6">
-        <h2 className="text-xl font-display font-bold text-deco-gold">Score</h2>
-        <p className="text-deco-cream/60 mt-4">No contract yet</p>
+      <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 p-4">
+        <h2 className="text-lg font-display font-bold text-deco-gold">Score</h2>
+        <p className="text-deco-cream/60 mt-3">No contract yet</p>
       </div>
     );
   }
 
+  const tricksNeeded = 6 + contract.level;
+  const nsTricks = gameState.cardPlay?.nsTricks ?? 0;
+  const ewTricks = gameState.cardPlay?.ewTricks ?? 0;
+  const isNsDeclarer = contract.declarer === 'N' || contract.declarer === 'S';
+  const declarerTricks = isNsDeclarer ? nsTricks : ewTricks;
+  const defenseTricks = isNsDeclarer ? ewTricks : nsTricks;
+  const tricksStillNeeded = Math.max(0, tricksNeeded - declarerTricks);
+
   return (
-    <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 p-6">
-      <h2 className="text-xl font-display font-bold text-deco-gold mb-4">Score</h2>
+    <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 p-4">
+      {/* Trick counter - prominent */}
+      {gameState.cardPlay && (
+        <div className="mb-3 bg-deco-navy rounded-lg p-3 border border-deco-gold/20">
+          <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="text-center">
+              <span className="text-xs text-deco-cream/60 block">N-S</span>
+              <span className="text-2xl font-display font-bold text-deco-gold">{nsTricks}</span>
+            </div>
+            <div className="text-center">
+              <span className="text-xs text-deco-cream/60 block">E-W</span>
+              <span className="text-2xl font-display font-bold text-deco-gold">{ewTricks}</span>
+            </div>
+          </div>
+          <p className="text-xs text-center text-deco-cream/60">
+            {tricksStillNeeded > 0
+              ? `Need ${tricksStillNeeded} more trick${tricksStillNeeded !== 1 ? 's' : ''} to make`
+              : declarerTricks === tricksNeeded
+                ? 'Contract just made!'
+                : `Made +${declarerTricks - tricksNeeded} overtrick${declarerTricks - tricksNeeded !== 1 ? 's' : ''}`
+            }
+            {defenseTricks > 13 - tricksNeeded && (
+              <span className="text-deco-heart"> · Down {defenseTricks - (13 - tricksNeeded)}</span>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Contract info */}
-      <div className="mb-6 bg-deco-navy rounded-lg p-4 border border-deco-gold/10">
-        <h3 className="font-semibold mb-2 text-deco-cream/70 text-xs tracking-widest uppercase">Contract</h3>
-        <p className="text-3xl font-display font-bold text-deco-gold">
+      <div className="mb-3 bg-deco-navy rounded-lg p-3 border border-deco-gold/10">
+        <h3 className="font-semibold mb-1 text-deco-cream/70 text-xs tracking-widest uppercase">Contract</h3>
+        <p className="text-2xl font-display font-bold text-deco-gold">
           {contract.level}
           {strainSymbols[contract.strain]}
           {contract.doubled && 'X'}
           {contract.redoubled && 'XX'}
         </p>
-        <p className="text-sm text-deco-cream/60 mt-2">
-          Declarer: <span className="font-semibold text-deco-cream/80">{contract.declarer}</span>
+        <p className="text-sm text-deco-cream/60 mt-1">
+          Declarer: <span className="font-semibold text-deco-cream/80">{getDisplayName(contract.declarer)}</span>
         </p>
       </div>
 

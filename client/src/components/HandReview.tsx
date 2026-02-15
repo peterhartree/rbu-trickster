@@ -41,11 +41,16 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
     );
   }
 
+  const getDisplayName = (position: Position): string => {
+    const name = gameState.players?.[position]?.name;
+    return name ? `${name} (${positionNames[position]})` : positionNames[position];
+  };
+
   const renderHand = (position: Position, cards: CardType[]) => {
     return (
       <div className="bg-deco-midnight/80 rounded-lg border border-deco-gold/30 p-3">
         <h4 className="text-sm font-display font-bold text-deco-gold mb-2 text-center">
-          {positionNames[position]}
+          {getDisplayName(position)}
           {contract?.declarer === position && (
             <span className="ml-2 text-xs bg-deco-gold text-deco-navy px-2 py-0.5 rounded">
               Declarer
@@ -72,7 +77,7 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
   };
 
   return (
-    <div className="h-full flex flex-col bg-deco-navy rounded-lg border border-deco-gold/20 overflow-hidden">
+    <div className="h-full min-h-[500px] flex flex-col bg-deco-navy rounded-lg border border-deco-gold/20 overflow-hidden">
       {/* Header */}
       <div className="shrink-0 p-4 bg-deco-midnight border-b border-deco-gold/20 text-center">
         <div className="flex justify-center items-center space-x-3 mb-2">
@@ -93,7 +98,7 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
                 {contract.doubled && ' X'}
                 {contract.redoubled && ' XX'}
               </span>
-              <span className="text-deco-cream/60 ml-2">by {positionNames[contract.declarer]}</span>
+              <span className="text-deco-cream/60 ml-2">by {getDisplayName(contract.declarer)}</span>
             </p>
             {result && (
               <p className="text-deco-cream">
