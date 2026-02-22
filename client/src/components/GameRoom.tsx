@@ -66,8 +66,9 @@ function GameRoom() {
   const [showHandHistory, setShowHandHistory] = useState(false);
   const [sessionScore, setSessionScore] = useState<SessionScore | null>(null);
   const [lastCompletedTrick, setLastCompletedTrick] = useState<Trick | null>(null);
+  const [reviewableTrick, setReviewableTrick] = useState<Trick | null>(null);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('bridge_player_name') || '');
-  const { cardPlayed: playCardSound, yourTurn: playYourTurnSound, trickWon: playTrickWonSound, bidPlaced: playBidSound } = useSoundEffects();
+  const { cardPlayed: playCardSound, trumpPlayed: playTrumpSound, yourTurn: playYourTurnSound, trickWon: playTrickWonSound, bidPlaced: playBidSound } = useSoundEffects();
 
   useEffect(() => {
     if (!roomId) return;
@@ -125,8 +126,26 @@ function GameRoom() {
     });
 
     newSocket.on('card:played', (data: any) => {
+      // Detect trump ruff: played card suit = contract strain ≠ led suit
+      const cardPlay = data.gameState?.cardPlay;
+      const contract = data.gameState?.contract;
+      const currentTrick = cardPlay?.currentTrick;
+      if (contract && currentTrick && currentTrick.cards.length >= 2) {
+        const ledSuit = currentTrick.cards[0]?.card?.suit;
+        const lastCard = currentTrick.cards[currentTrick.cards.length - 1]?.card;
+        const trumpStrain = contract.strain;
+        // Map strain to suit (NT has no trump suit)
+        const strainToSuit: Record<string, string> = { C: 'C', D: 'D', H: 'H', S: 'S' };
+        const trumpSuit = strainToSuit[trumpStrain];
+        if (trumpSuit && lastCard?.suit === trumpSuit && ledSuit !== trumpSuit) {
+          playTrumpSound();
+        } else {
+          playCardSound();
+        }
+      } else {
+        playCardSound();
+      }
       setGameState(data.gameState);
-      playCardSound();
     });
 
     newSocket.on('trick:complete', (data: any) => {
@@ -135,10 +154,11 @@ function GameRoom() {
       const completedTrick = data.gameState?.cardPlay?.tricks?.slice(-1)[0];
       if (completedTrick) {
         setLastCompletedTrick(completedTrick);
+        setReviewableTrick(completedTrick);
         setTimeout(() => {
           setLastCompletedTrick(null);
           setGameState(data.gameState);
-        }, 1500);
+        }, 2000);
       } else {
         setGameState(data.gameState);
       }
@@ -224,10 +244,23 @@ function GameRoom() {
   useEffect(() => {
     if (!gameState || !myPosition) return;
     const currentTurn = gameState.phase === 'bidding' ? gameState.currentBidder : gameState.currentPlayer;
+    const dummyPosition = gameState.cardPlay?.dummy;
+    const declarerPosition = gameState.contract?.declarer;
+    const iAmDummy = gameState.phase === 'playing' && myPosition === dummyPosition && myPosition !== declarerPosition;
+
+    // Don't play sound when you're dummy
+    if (iAmDummy) return;
+
+    // Play sound for declarer when it's dummy's turn
+    if (gameState.phase === 'playing' && myPosition === declarerPosition && currentTurn === dummyPosition) {
+      playYourTurnSound();
+      return;
+    }
+
     if (currentTurn === myPosition) {
       playYourTurnSound();
     }
-  }, [gameState?.currentBidder, gameState?.currentPlayer, myPosition, playYourTurnSound, gameState?.phase]);
+  }, [gameState?.currentBidder, gameState?.currentPlayer, myPosition, playYourTurnSound, gameState?.phase, gameState?.cardPlay?.dummy, gameState?.contract?.declarer]);
 
   const handleStartGame = () => {
     if (socket && roomId) {
@@ -395,7 +428,7 @@ function GameRoom() {
 
             {/* Centre column: Play area */}
             <div className="md:col-span-6">
-              <PlayArea gameState={gameState} myPosition={myPosition} onPlayCard={handlePlayCard} lastCompletedTrick={lastCompletedTrick} />
+              <PlayArea gameState={gameState} myPosition={myPosition} onPlayCard={handlePlayCard} lastCompletedTrick={lastCompletedTrick} reviewableTrick={reviewableTrick} />
             </div>
 
             {/* Right column: Turn indicator */}

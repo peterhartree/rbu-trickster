@@ -7,10 +7,12 @@ import type {
   Card,
   BidCall,
   SessionScore,
+  Strain,
 } from '@bridge/shared';
-import { Position as Pos, GamePhase as Phase } from '@bridge/shared';
+import { Position as Pos, GamePhase as Phase, BidLevel, Strain as Strn } from '@bridge/shared';
 import { dealCards, getNextPosition } from '../domain/cards/deck.js';
 import { gameReducer } from '../domain/game-state/reducer.js';
+import { isValidBid } from '../domain/bidding/bid-validator.js';
 import { HandHistory } from './HandHistory.js';
 import { SessionManager } from './SessionManager.js';
 
@@ -281,9 +283,36 @@ export class GameRoom {
       }
     }
 
+    // Compute valid bids when it's this player's turn to bid
+    let validBids: BidAction[] | undefined;
+    if (this.gameState.phase === Phase.BIDDING && this.gameState.currentBidder === position && this.gameState.bidding) {
+      validBids = [];
+      const levels = [BidLevel.ONE, BidLevel.TWO, BidLevel.THREE, BidLevel.FOUR, BidLevel.FIVE, BidLevel.SIX, BidLevel.SEVEN];
+      const strains: Strain[] = [Strn.CLUBS, Strn.DIAMONDS, Strn.HEARTS, Strn.SPADES, Strn.NO_TRUMP];
+      for (const level of levels) {
+        for (const strain of strains) {
+          const bid: BidAction = { type: 'BID', level, strain };
+          if (isValidBid(bid, this.gameState.bidding, position).isValid) {
+            validBids.push(bid);
+          }
+        }
+      }
+      // Check special bids
+      if (isValidBid({ type: 'PASS' }, this.gameState.bidding, position).isValid) {
+        validBids.push({ type: 'PASS' });
+      }
+      if (isValidBid({ type: 'DOUBLE' }, this.gameState.bidding, position).isValid) {
+        validBids.push({ type: 'DOUBLE' });
+      }
+      if (isValidBid({ type: 'REDOUBLE' }, this.gameState.bidding, position).isValid) {
+        validBids.push({ type: 'REDOUBLE' });
+      }
+    }
+
     return {
       ...this.gameState,
       players: sanitisedPlayers,
+      validBids,
       // Include original deal for review phase
       originalHands: isReviewPhase && this.gameState.deal ? {
         [Pos.NORTH]: this.gameState.deal.north,

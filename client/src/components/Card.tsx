@@ -6,6 +6,7 @@ interface CardProps {
   onClick?: () => void;
   disabled?: boolean;
   dimmed?: boolean;
+  isTrump?: boolean;
   size?: 'sm' | 'md' | 'lg';
   elevated?: boolean;
   faceDown?: boolean;
@@ -210,6 +211,7 @@ function Card({
   onClick,
   disabled = false,
   dimmed = false,
+  isTrump = false,
   size = 'md',
   elevated = false,
   faceDown = false,
@@ -273,14 +275,15 @@ function Card({
         rounded-lg
         select-none
         transition-all duration-200
-        bg-deco-cream
-        border border-deco-gold/30
+        ${isTrump
+          ? 'bg-gradient-to-br from-deco-cream to-amber-50 border border-deco-gold/50'
+          : 'bg-deco-cream border border-deco-gold/30'
+        }
         ${elevated ? 'shadow-deco-lg' : 'shadow-deco'}
         ${isInteractive
           ? 'cursor-pointer hover:-translate-y-2 hover:shadow-gold card-glow fan-card'
           : ''
         }
-        ${disabled ? 'cursor-not-allowed' : ''}
         card-entrance
       `}
       style={{

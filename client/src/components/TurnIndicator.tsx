@@ -16,6 +16,8 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
   const phase = gameState.phase;
   const currentBidder = gameState.currentBidder;
   const currentPlayer = gameState.currentPlayer;
+  const dummyPosition = gameState.cardPlay?.dummy;
+  const declarerPosition = gameState.contract?.declarer;
 
   // Helper: show "Name (East)" or just "East" if no name
   const getDisplayName = (position: Position | undefined | null): string => {
@@ -26,7 +28,15 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
 
   // Determine whose turn it is based on phase
   const currentTurn = phase === 'bidding' ? currentBidder : currentPlayer;
-  const isMyTurn = currentTurn === myPosition;
+
+  // Dummy awareness
+  const iAmDummy = phase === 'playing' && myPosition === dummyPosition && myPosition !== declarerPosition;
+  const iAmDeclarer = myPosition === declarerPosition;
+  const isDummysTurn = phase === 'playing' && currentPlayer === dummyPosition;
+  const isDeclarerPlayingDummy = iAmDeclarer && isDummysTurn;
+
+  // My turn: either it's literally my turn, or I'm declarer and it's dummy's turn
+  const isMyTurn = (currentTurn === myPosition && !iAmDummy) || isDeclarerPlayingDummy;
 
   // Determine the action type
   const actionText = phase === 'bidding' ? 'bid' : 'play';
@@ -41,6 +51,69 @@ function TurnIndicator({ gameState, myPosition }: TurnIndicatorProps) {
           </div>
           <h2 className="text-lg font-display font-bold text-deco-gold mb-1">Hand Complete</h2>
           <p className="text-sm text-deco-cream/60">View the score to see results</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Dummy state — calm, no action needed
+  if (iAmDummy) {
+    return (
+      <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 p-4 animate-fade-in-up deco-corner">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-deco-gold/10 flex items-center justify-center mb-3 border border-deco-gold/20">
+            <DummyIcon className="w-6 h-6 text-deco-gold/60" />
+          </div>
+          <h2 className="text-lg font-display font-bold text-deco-cream/70 mb-2">You are dummy</h2>
+          <p className="text-sm text-deco-cream/50">
+            {getDisplayName(declarerPosition)} plays your cards
+          </p>
+
+          {/* Contract info */}
+          {gameState.contract && (
+            <div className="mt-4 pt-4 border-t border-deco-gold/20 w-full">
+              <p className="text-sm text-deco-cream/50">Contract</p>
+              <p className="text-lg font-display font-bold text-deco-gold">
+                {gameState.contract.level}
+                {formatStrain(gameState.contract.strain)}
+                {gameState.contract.doubled && 'X'}
+                {gameState.contract.redoubled && 'XX'}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Declarer playing dummy's cards
+  if (isDeclarerPlayingDummy) {
+    return (
+      <div
+        className="rounded-lg shadow-deco p-4 transition-all duration-300 animate-fade-in-up bg-gradient-to-br from-deco-gold via-deco-gold to-deco-gold-light animate-pulse-glow border-2 border-deco-gold-light"
+      >
+        <div className="flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-deco-navy/30 border border-deco-navy/30 animate-bounce-subtle flex items-center justify-center mb-3">
+            <PlayIcon className="w-6 h-6 text-deco-navy" />
+          </div>
+          <h2 className="text-2xl font-display font-bold text-deco-navy mb-2">Play dummy's cards</h2>
+          <p className="text-deco-navy/70">
+            Select a card from dummy's hand
+          </p>
+
+          {gameState.contract && (
+            <div className="mt-4 pt-4 border-t border-deco-navy/20 w-full">
+              <p className="text-sm text-deco-navy/60">Contract</p>
+              <p className="text-lg font-display font-bold text-deco-navy">
+                {gameState.contract.level}
+                {formatStrain(gameState.contract.strain)}
+                {gameState.contract.doubled && 'X'}
+                {gameState.contract.redoubled && 'XX'}
+                {' by '}
+                {getDisplayName(gameState.contract.declarer)}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -178,6 +251,29 @@ function CheckIcon({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M5 13l4 4L19 7"
+      />
+    </svg>
+  );
+}
+
+function DummyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
       />
     </svg>
   );

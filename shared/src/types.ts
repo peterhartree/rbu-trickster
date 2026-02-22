@@ -223,6 +223,7 @@ export interface GameState {
     [Position.WEST]: Card[];
   };
   session?: SessionScore;
+  validBids?: BidAction[];
 }
 
 export type GameAction =

@@ -1,5 +1,5 @@
 import type { Card as CardType, Position, GameState, Suit, Rank } from '@bridge/shared';
-import { Suit as SuitEnum, Rank as RankEnum } from '@bridge/shared';
+import { Suit as SuitEnum, Rank as RankEnum, Strain as StrainEnum } from '@bridge/shared';
 import Card from './Card';
 
 const hcpValues: Partial<Record<Rank, number>> = {
@@ -13,6 +13,14 @@ function calculateHCP(hand: CardType[]): number {
   return hand.reduce((total, card) => total + (hcpValues[card.rank] || 0), 0);
 }
 
+// Map contract strain to card suit for trump highlighting
+const strainToSuit: Partial<Record<string, Suit>> = {
+  [StrainEnum.CLUBS]: SuitEnum.CLUBS,
+  [StrainEnum.DIAMONDS]: SuitEnum.DIAMONDS,
+  [StrainEnum.HEARTS]: SuitEnum.HEARTS,
+  [StrainEnum.SPADES]: SuitEnum.SPADES,
+};
+
 interface PlayerHandProps {
   hand: CardType[];
   myPosition: Position;
@@ -22,6 +30,7 @@ interface PlayerHandProps {
 
 function PlayerHand({ hand, myPosition, gameState, onPlayCard }: PlayerHandProps) {
   const isMyTurn = gameState.phase === 'playing' && gameState.currentPlayer === myPosition;
+  const trumpSuit = gameState.contract?.strain ? strainToSuit[gameState.contract.strain] : undefined;
 
   // Sort all cards by suit then rank for display
   const sortedHand = sortCards(hand);
@@ -47,7 +56,7 @@ function PlayerHand({ hand, myPosition, gameState, onPlayCard }: PlayerHandProps
       {/* Gold accent line above cards */}
       <div className="h-px bg-gradient-to-r from-transparent via-deco-gold/30 to-transparent mb-3" />
 
-      <div className="flex items-end justify-center min-h-[100px]">
+      <div className="flex items-end justify-center min-h-[120px] overflow-x-auto">
         {/* Cards in fan layout */}
         <div className="flex items-end justify-center relative">
           {sortedHand.map((card, index) => {
@@ -59,7 +68,7 @@ function PlayerHand({ hand, myPosition, gameState, onPlayCard }: PlayerHandProps
                 key={`${card.suit}-${card.rank}-${index}`}
                 className="fan-card relative"
                 style={{
-                  marginLeft: index === 0 ? 0 : '-12px',
+                  marginLeft: index === 0 ? 0 : '-4px',
                   marginBottom: verticalOffset,
                   zIndex: index,
                 }}
@@ -69,7 +78,8 @@ function PlayerHand({ hand, myPosition, gameState, onPlayCard }: PlayerHandProps
                   onClick={() => onPlayCard(card)}
                   disabled={!isMyTurn}
                   dimmed={gameState.phase === 'playing' && !isMyTurn}
-                  size="md"
+                  isTrump={trumpSuit === card.suit}
+                  size="lg"
                   rotation={rotation}
                   animationDelay={index * 50}
                 />
@@ -82,13 +92,17 @@ function PlayerHand({ hand, myPosition, gameState, onPlayCard }: PlayerHandProps
         </div>
       </div>
 
-      {/* HCP and card count */}
+      {/* HCP and hand counter */}
       <div className="text-center mt-2 text-xs text-deco-cream/50 tracking-wide">
         <span className="font-display text-deco-gold/70">{calculateHCP(hand)}</span>
         <span className="ml-1">HCP</span>
-        <span className="mx-1.5 text-deco-gold/30">|</span>
-        <span className="font-display text-deco-gold/70">{hand.length}</span>
-        <span className="ml-1">cards</span>
+        {gameState.session && (
+          <>
+            <span className="mx-1.5 text-deco-gold/30">|</span>
+            <span className="font-display text-deco-gold/70">Hand {gameState.session.handNumber}</span>
+            <span className="ml-0.5">/ {gameState.session.totalHands}</span>
+          </>
+        )}
       </div>
     </div>
   );

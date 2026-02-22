@@ -25,7 +25,8 @@ function SAYCReference({ isOpen, onClose }: SAYCReferenceProps) {
 
   const fetchConventions = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/conventions/sayc');
+      const API_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
+      const response = await fetch(`${API_URL}/api/conventions/sayc`);
       const data = await response.json();
       setConventions(data);
       setLoading(false);

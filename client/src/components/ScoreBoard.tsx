@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import type { GameState, Strain, Position } from '@bridge/shared';
 import { Strain as Strn } from '@bridge/shared';
 
@@ -20,16 +21,41 @@ const strainSymbols: Record<Strain, string> = {
   [Strn.NO_TRUMP]: 'NT',
 };
 
+const suitColors: Record<Strain, string> = {
+  [Strn.CLUBS]: 'text-deco-club',
+  [Strn.DIAMONDS]: 'text-deco-diamond',
+  [Strn.HEARTS]: 'text-deco-heart',
+  [Strn.SPADES]: 'text-deco-spade',
+  [Strn.NO_TRUMP]: 'text-deco-gold',
+};
+
 function ScoreBoard({ gameState }: ScoreBoardProps) {
   const contract = gameState.contract;
   const score = gameState.score;
   const result = gameState.result;
+  const biddingCalls = gameState.bidding?.calls;
+
+  // Auto-collapse bidding history after first card is played
+  const cardsPlayed = (gameState.cardPlay?.tricks?.length || 0) > 0 ||
+    (gameState.cardPlay?.currentTrick?.cards?.length || 0) > 0;
+  const [biddingExpanded, setBiddingExpanded] = useState(true);
+
+  useEffect(() => {
+    if (cardsPlayed) {
+      setBiddingExpanded(false);
+    }
+  }, [cardsPlayed]);
 
   // Helper: show "Name (East)" or just "East" if no name
   const getDisplayName = (position: string): string => {
     const name = gameState.players?.[position as keyof typeof gameState.players]?.name;
     const posName = positionNames[position as keyof typeof positionNames];
     return name ? `${name} (${posName})` : posName || position;
+  };
+
+  const getShortName = (position: string): string => {
+    const name = gameState.players?.[position as keyof typeof gameState.players]?.name;
+    return name ? `${name.split(' ')[0]}` : position;
   };
 
   if (!contract) {
@@ -51,6 +77,44 @@ function ScoreBoard({ gameState }: ScoreBoardProps) {
 
   return (
     <div className="bg-deco-midnight rounded-lg shadow-deco border border-deco-gold/20 p-4">
+      {/* Bidding history */}
+      {biddingCalls && biddingCalls.length > 0 && (
+        <div className="mb-3">
+          <button
+            onClick={() => setBiddingExpanded(!biddingExpanded)}
+            className="w-full flex items-center justify-between text-xs text-deco-cream/60 hover:text-deco-cream/80 transition-colors mb-1"
+          >
+            <span className="font-semibold tracking-widest uppercase">Bidding</span>
+            <span>{biddingExpanded ? '▾' : '▸'}</span>
+          </button>
+          {biddingExpanded ? (
+            <div className="flex flex-wrap gap-1">
+              {biddingCalls.map((call, index) => (
+                <div
+                  key={index}
+                  className="shrink-0 bg-deco-cream/90 rounded px-1.5 py-0.5 text-xs flex items-center space-x-1 border border-deco-gold/30"
+                >
+                  <span className="font-mono text-[10px] text-deco-navy/60">{getShortName(call.position)}</span>
+                  <span className={`font-display font-semibold ${call.action.type === 'BID' ? suitColors[call.action.strain] : 'text-deco-navy/70'}`}>
+                    {call.action.type === 'BID'
+                      ? `${call.action.level}${strainSymbols[call.action.strain]}`
+                      : call.action.type === 'PASS'
+                      ? 'Pass'
+                      : call.action.type === 'DOUBLE'
+                      ? 'X'
+                      : 'XX'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-deco-cream/50">
+              {biddingCalls.length} calls — click to expand
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Trick counter - prominent */}
       {gameState.cardPlay && (
         <div className="mb-3 bg-deco-navy rounded-lg p-3 border border-deco-gold/20">

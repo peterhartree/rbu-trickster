@@ -43,8 +43,17 @@ export function useSoundEffects() {
   const lastTurnSoundRef = useRef(0);
 
   const cardPlayed = useCallback(() => {
-    // Short percussive tap
-    playTone(800, 0.06, 0.06, 'square');
+    // Softer percussive tap with triangle wave
+    playTone(800, 0.06, 0.06, 'triangle');
+  }, []);
+
+  const trumpPlayed = useCallback(() => {
+    // Descending three-note motif for trump ruff
+    playSequence([
+      { freq: 880, delay: 0, duration: 0.1 },     // A5
+      { freq: 659, delay: 0.08, duration: 0.1 },   // E5
+      { freq: 523, delay: 0.16, duration: 0.15 },   // C5
+    ], 0.08, 'triangle');
   }, []);
 
   const yourTurn = useCallback(() => {
@@ -71,9 +80,9 @@ export function useSoundEffects() {
   }, []);
 
   const bidPlaced = useCallback(() => {
-    // Subtle click
-    playTone(600, 0.04, 0.04, 'square');
+    // Softer click with triangle wave
+    playTone(600, 0.04, 0.04, 'triangle');
   }, []);
 
-  return { cardPlayed, yourTurn, trickWon, bidPlaced };
+  return { cardPlayed, trumpPlayed, yourTurn, trickWon, bidPlaced };
 }

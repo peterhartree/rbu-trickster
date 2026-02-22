@@ -32,10 +32,21 @@ const positionNames: Record<string, string> = {
 
 function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) {
   const isMyTurn = gameState.currentBidder === myPosition;
+  const validBids = gameState.validBids || [];
 
   const getShortName = (position: string): string => {
     const name = gameState.players?.[position as keyof typeof gameState.players]?.name;
     return name ? `${name.split(' ')[0]}` : position;
+  };
+
+  const isBidValid = (level: BidLevel, strain: Strain): boolean => {
+    return validBids.some(
+      (b) => b.type === 'BID' && b.level === level && b.strain === strain
+    );
+  };
+
+  const isSpecialValid = (type: 'PASS' | 'DOUBLE' | 'REDOUBLE'): boolean => {
+    return validBids.some((b) => b.type === type);
   };
 
   const handleBid = (level: BidLevel, strain: Strain) => {
@@ -76,75 +87,78 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
         </div>
       </div>
 
-      {/* Bid grid - 7 columns x 5 rows */}
+      {/* Bid grid - 5 columns (C, D, H, S, NT) × 7 rows (levels 1–7) */}
       <div className="flex-1 p-2 overflow-y-auto">
-        <div className="grid grid-cols-7 gap-0.5">
-          {/* Header row - levels */}
-          {levels.map((level) => (
-            <div key={`header-${level}`} className="text-center text-[10px] font-display font-semibold text-deco-gold/60 pb-0.5">
-              {level}
+        <div className="grid grid-cols-5 gap-0.5">
+          {/* Header row - strains */}
+          {strainOrder.map((strain) => (
+            <div key={`header-${strain}`} className={`text-center text-[10px] font-display font-semibold pb-0.5 ${suitColors[strain]}`}>
+              {suitSymbols[strain]}
             </div>
           ))}
 
-          {/* Strain rows */}
-          {strainOrder.map((strain) => (
-            levels.map((level) => (
-              <button
-                key={`${level}-${strain}`}
-                onClick={() => handleBid(level, strain)}
-                disabled={!isMyTurn}
-                className={`
-                  py-1 rounded text-xs font-display font-bold transition-all border
-                  ${suitColors[strain]}
-                  ${isMyTurn
-                    ? 'bg-deco-cream border-deco-gold/30 hover:bg-deco-gold-light hover:border-deco-gold hover:scale-105 shadow-sm'
-                    : 'bg-deco-cream/50 border-deco-gold/10 opacity-50 cursor-not-allowed'
-                  }
-                `}
-              >
-                {suitSymbols[strain]}
-              </button>
-            ))
+          {/* Level rows */}
+          {levels.map((level) => (
+            strainOrder.map((strain) => {
+              const valid = isMyTurn && isBidValid(level, strain);
+              return (
+                <button
+                  key={`${level}-${strain}`}
+                  onClick={valid ? () => handleBid(level, strain) : undefined}
+                  disabled={!valid}
+                  className={`
+                    py-1 rounded text-xs font-display font-bold transition-all border
+                    ${suitColors[strain]}
+                    ${valid
+                      ? 'bg-deco-cream border-deco-gold/30 hover:bg-deco-gold-light hover:border-deco-gold hover:scale-105 shadow-sm cursor-pointer'
+                      : 'bg-deco-cream/30 border-deco-gold/5 opacity-30'
+                    }
+                  `}
+                >
+                  {level}{suitSymbols[strain]}
+                </button>
+              );
+            })
           ))}
         </div>
       </div>
 
-      {/* Special bids - Art Deco styled */}
+      {/* Special bids */}
       <div className="shrink-0 p-2 border-t border-deco-gold/20 grid grid-cols-3 gap-1">
         <button
-          onClick={handlePass}
-          disabled={!isMyTurn}
+          onClick={isMyTurn && isSpecialValid('PASS') ? handlePass : undefined}
+          disabled={!isMyTurn || !isSpecialValid('PASS')}
           className={`
             py-2 text-sm font-semibold rounded transition-all border
-            ${isMyTurn
-              ? 'bg-deco-navy text-deco-cream border-deco-gold/30 hover:bg-deco-accent hover:border-deco-gold/50'
-              : 'bg-deco-navy/50 text-deco-cream/50 border-deco-gold/10 cursor-not-allowed'
+            ${isMyTurn && isSpecialValid('PASS')
+              ? 'bg-deco-navy text-deco-cream border-deco-gold/30 hover:bg-deco-accent hover:border-deco-gold/50 cursor-pointer'
+              : 'bg-deco-navy/50 text-deco-cream/50 border-deco-gold/10 opacity-30'
             }
           `}
         >
           Pass
         </button>
         <button
-          onClick={handleDouble}
-          disabled={!isMyTurn}
+          onClick={isMyTurn && isSpecialValid('DOUBLE') ? handleDouble : undefined}
+          disabled={!isMyTurn || !isSpecialValid('DOUBLE')}
           className={`
             py-2 text-sm font-semibold rounded transition-all border
-            ${isMyTurn
-              ? 'bg-deco-heart text-deco-cream border-deco-heart hover:brightness-110'
-              : 'bg-deco-heart/30 text-deco-cream/50 border-deco-heart/30 cursor-not-allowed'
+            ${isMyTurn && isSpecialValid('DOUBLE')
+              ? 'bg-deco-heart text-deco-cream border-deco-heart hover:brightness-110 cursor-pointer'
+              : 'bg-deco-heart/30 text-deco-cream/50 border-deco-heart/30 opacity-30'
             }
           `}
         >
           X
         </button>
         <button
-          onClick={handleRedouble}
-          disabled={!isMyTurn}
+          onClick={isMyTurn && isSpecialValid('REDOUBLE') ? handleRedouble : undefined}
+          disabled={!isMyTurn || !isSpecialValid('REDOUBLE')}
           className={`
             py-2 text-sm font-semibold rounded transition-all border
-            ${isMyTurn
-              ? 'bg-deco-gold text-deco-navy border-deco-gold hover:brightness-110'
-              : 'bg-deco-gold/30 text-deco-navy/50 border-deco-gold/30 cursor-not-allowed'
+            ${isMyTurn && isSpecialValid('REDOUBLE')
+              ? 'bg-deco-gold text-deco-navy border-deco-gold hover:brightness-110 cursor-pointer'
+              : 'bg-deco-gold/30 text-deco-navy/50 border-deco-gold/30 opacity-30'
             }
           `}
         >
