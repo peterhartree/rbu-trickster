@@ -175,11 +175,11 @@ function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick, revie
           const isDummy = gameState.cardPlay?.dummy === position;
 
           return (
-            <div key={position} className={`absolute ${getPositionStyle(position)}`}>
-              {/* Position label */}
+            <div key={position} className={`absolute ${getPositionStyle(position)} z-20`}>
+              {/* Position label with avatar */}
               <div
                 className={`
-                  px-3 py-1 rounded text-xs font-semibold tracking-wide transition-all
+                  flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold tracking-wide transition-all
                   ${isCurrentPlayer
                     ? 'bg-deco-gold text-deco-navy ring-2 ring-deco-gold/50 ring-offset-2 ring-offset-deco-navy animate-pulse-glow'
                     : 'bg-deco-midnight/80 text-deco-cream/60 border border-deco-gold/20'
@@ -187,10 +187,30 @@ function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick, revie
                   ${getVisualPosition(position) === 'top' || getVisualPosition(position) === 'bottom' ? 'mb-2' : 'mx-2'}
                 `}
               >
+                {/* Avatar circle */}
+                {gameState.players?.[position]?.avatarUrl ? (
+                  <img
+                    src={gameState.players[position]!.avatarUrl}
+                    alt=""
+                    className={`w-6 h-6 rounded-full object-cover shrink-0 ${
+                      isCurrentPlayer ? 'ring-1 ring-deco-navy/50' : 'ring-1 ring-deco-gold/30'
+                    }`}
+                  />
+                ) : (
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                      isCurrentPlayer
+                        ? 'bg-deco-navy/20 text-deco-navy'
+                        : 'bg-deco-gold/20 text-deco-cream/60'
+                    }`}
+                  >
+                    {(gameState.players?.[position]?.name || positionNames[position])[0]}
+                  </div>
+                )}
                 {gameState.players?.[position]?.name || positionNames[position]}
-                <span className="ml-1 opacity-50 text-[10px]">{position}</span>
-                {isDeclarer && <span className="ml-1 text-deco-gold-light">D</span>}
-                {isDummy && <span className="ml-1 opacity-60">*</span>}
+                <span className="ml-0.5 opacity-50 text-[10px]">{position}</span>
+                {isDeclarer && <span className="ml-0.5 text-deco-gold-light">D</span>}
+                {isDummy && <span className="ml-0.5 opacity-60">*</span>}
               </div>
 
               {/* Played card */}
@@ -200,42 +220,79 @@ function PlayArea({ gameState, myPosition, onPlayCard, lastCompletedTrick, revie
             </div>
           );
         })}
-      </div>
 
-      {/* Dummy's hand display - suit columns */}
-      {dummySuitGroups.length > 0 && dummyPosition && (
-        <div className="shrink-0 px-2 pb-2">
-          <div className="bg-deco-accent/20 rounded-lg p-3 border border-deco-gold/20">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-deco-gold tracking-widest uppercase">
-                Dummy — {getDisplayName(gameState, dummyPosition)}
-              </span>
-              <span className="text-xs text-deco-cream/50">{dummyHand!.length} cards</span>
-            </div>
-            <div className="flex justify-center gap-3">
-              {dummySuitGroups.map(({ suit, cards }) => (
-                <div key={suit} className="flex flex-col items-center">
-                  {cards.map((card, idx) => (
-                    <div
-                      key={`${card.suit}-${card.rank}`}
-                      style={{ marginTop: idx === 0 ? 0 : '-24px' }}
-                    >
-                      <Card
-                        card={card}
-                        size="sm"
-                        disabled={!canPlayDummyCards}
-                        dimmed={!canPlayDummyCards}
-                        isTrump={trumpSuit === card.suit}
-                        onClick={canPlayDummyCards ? () => onPlayCard!(card) : undefined}
-                      />
+        {/* Dummy's hand at seat position */}
+        {dummySuitGroups.length > 0 && dummyPosition && (() => {
+          const vPos = getVisualPosition(dummyPosition);
+          // Position styles for dummy hand at each seat
+          const dummyPositionStyles: Record<string, string> = {
+            top: 'absolute top-12 left-1/2 -translate-x-1/2 z-10',
+            left: 'absolute left-14 top-1/2 -translate-y-1/2 z-10',
+            right: 'absolute right-14 top-1/2 -translate-y-1/2 z-10',
+            bottom: '', // shouldn't occur
+          };
+
+          if (vPos === 'top') {
+            // Horizontal row of suit columns (cards overlap vertically within each column)
+            return (
+              <div className={dummyPositionStyles.top}>
+                <div className="flex gap-1.5">
+                  {dummySuitGroups.map(({ suit, cards }) => (
+                    <div key={suit} className="flex flex-col items-center">
+                      {cards.map((card, idx) => (
+                        <div
+                          key={`${card.suit}-${card.rank}`}
+                          style={{ marginTop: idx === 0 ? 0 : '-20px' }}
+                        >
+                          <Card
+                            card={card}
+                            size="sm"
+                            disabled={!canPlayDummyCards}
+                            dimmed={!canPlayDummyCards}
+                            isTrump={trumpSuit === card.suit}
+                            onClick={canPlayDummyCards ? () => onPlayCard!(card) : undefined}
+                          />
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
+            );
+          }
+
+          if (vPos === 'left' || vPos === 'right') {
+            // Vertical stack of suit rows (cards overlap horizontally within each row)
+            return (
+              <div className={dummyPositionStyles[vPos]}>
+                <div className="flex flex-col gap-0.5">
+                  {dummySuitGroups.map(({ suit, cards }) => (
+                    <div key={suit} className="flex flex-row items-center">
+                      {cards.map((card, idx) => (
+                        <div
+                          key={`${card.suit}-${card.rank}`}
+                          style={{ marginLeft: idx === 0 ? 0 : '-28px' }}
+                        >
+                          <Card
+                            card={card}
+                            size="sm"
+                            disabled={!canPlayDummyCards}
+                            dimmed={!canPlayDummyCards}
+                            isTrump={trumpSuit === card.suit}
+                            onClick={canPlayDummyCards ? () => onPlayCard!(card) : undefined}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
+      </div>
 
     </div>
   );

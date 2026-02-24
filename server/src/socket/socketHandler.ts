@@ -80,6 +80,27 @@ export function setupSocketHandlers(io: Server) {
       }
     });
 
+    // Set player avatar
+    socket.on('player:set-avatar', ({ roomId, avatarUrl }: { roomId: string; avatarUrl: string }) => {
+      try {
+        const room = gameManager.getRoom(roomId);
+        if (!room) return;
+        const position = room.getPlayerPosition(socket.id);
+        if (!position || !room.players[position]) return;
+
+        // Validate data URL is reasonable size (<100KB)
+        if (!avatarUrl || avatarUrl.length > 100_000) return;
+
+        room.players[position]!.avatarUrl = avatarUrl;
+        room.getFullState().players[position]!.avatarUrl = avatarUrl;
+
+        // Broadcast to all in room
+        io.to(roomId).emit('player:avatar-updated', { position, avatarUrl });
+      } catch {
+        // Ignore errors for avatar updates
+      }
+    });
+
     // Start game
     socket.on(SOCKET_EVENTS.GAME_START, ({ roomId }) => {
       try {

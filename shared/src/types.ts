@@ -189,6 +189,7 @@ export interface Player {
   position: Position;
   connected: boolean;
   name?: string;        // Player display name
+  avatarUrl?: string;   // Base64 data URL for profile picture (80×80 JPEG)
 }
 
 export interface GameState {

@@ -68,6 +68,7 @@ function GameRoom() {
   const [lastCompletedTrick, setLastCompletedTrick] = useState<Trick | null>(null);
   const [reviewableTrick, setReviewableTrick] = useState<Trick | null>(null);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('bridge_player_name') || '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => localStorage.getItem('bridge_player_avatar'));
   const { cardPlayed: playCardSound, trumpPlayed: playTrumpSound, yourTurn: playYourTurnSound, trickWon: playTrickWonSound, bidPlaced: playBidSound } = useSoundEffects();
 
   useEffect(() => {
@@ -91,8 +92,19 @@ function GameRoom() {
           setMyPosition(response.position);
           setPlayerCount(Object.keys(response.players || {}).length);
 
+          // Store players in gameState so WaitingRoom can display avatars
+          if (response.players) {
+            setGameState((prev) => ({ ...prev, players: response.players }));
+          }
+
           // Store session for reconnection
           storeSession(roomId, response.position, response.playerId || playerId);
+
+          // Send avatar if we have one stored
+          const savedAvatar = localStorage.getItem('bridge_player_avatar');
+          if (savedAvatar) {
+            newSocket.emit('player:set-avatar', { roomId, avatarUrl: savedAvatar });
+          }
 
           // If game is in progress, restore state immediately from join response
           if (response.gameInProgress && response.gameState) {
@@ -212,6 +224,22 @@ function GameRoom() {
       }
     });
 
+    newSocket.on('player:avatar-updated', (data: any) => {
+      if (data.position && data.avatarUrl) {
+        const pos = data.position as Position;
+        setGameState((prev) => {
+          if (!prev?.players) return prev;
+          return {
+            ...prev,
+            players: {
+              ...prev.players,
+              [pos]: { ...prev.players[pos], avatarUrl: data.avatarUrl },
+            },
+          };
+        });
+      }
+    });
+
     newSocket.on('room:error', (data: any) => {
       setError(data.message);
     });
@@ -294,6 +322,14 @@ function GameRoom() {
     }
   };
 
+  const handleAvatarChange = (dataUrl: string) => {
+    setAvatarUrl(dataUrl);
+    localStorage.setItem('bridge_player_avatar', dataUrl);
+    if (socket && roomId) {
+      socket.emit('player:set-avatar', { roomId, avatarUrl: dataUrl });
+    }
+  };
+
   const handleNewSession = () => {
     if (socket && roomId) {
       socket.emit('session:new', { roomId });
@@ -332,6 +368,9 @@ function GameRoom() {
         onStartGame={handleStartGame}
         playerName={playerName}
         onPlayerNameChange={handlePlayerNameChange}
+        avatarUrl={avatarUrl}
+        onAvatarChange={handleAvatarChange}
+        players={gameState?.players}
       />
     );
   }
