@@ -101,6 +101,27 @@ export function setupSocketHandlers(io: Server) {
       }
     });
 
+    // Set player card back
+    socket.on('player:set-card-back', ({ roomId, cardBackUrl }: { roomId: string; cardBackUrl: string }) => {
+      try {
+        const room = gameManager.getRoom(roomId);
+        if (!room) return;
+        const position = room.getPlayerPosition(socket.id);
+        if (!position || !room.players[position]) return;
+
+        // Validate data URL is reasonable size (<150KB)
+        if (!cardBackUrl || cardBackUrl.length > 150_000) return;
+
+        room.players[position]!.cardBackUrl = cardBackUrl;
+        room.getFullState().players[position]!.cardBackUrl = cardBackUrl;
+
+        // Broadcast to all in room
+        io.to(roomId).emit('player:card-back-updated', { position, cardBackUrl });
+      } catch {
+        // Ignore errors for card back updates
+      }
+    });
+
     // Start game
     socket.on(SOCKET_EVENTS.GAME_START, ({ roomId }) => {
       try {

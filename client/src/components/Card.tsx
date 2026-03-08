@@ -10,6 +10,7 @@ interface CardProps {
   size?: 'sm' | 'md' | 'lg';
   elevated?: boolean;
   faceDown?: boolean;
+  cardBackImage?: string;
   rotation?: number;
   animationDelay?: number;
 }
@@ -215,6 +216,7 @@ function Card({
   size = 'md',
   elevated = false,
   faceDown = false,
+  cardBackImage,
   rotation = 0,
   animationDelay = 0,
 }: CardProps) {
@@ -235,33 +237,38 @@ function Card({
           bg-gradient-to-br from-deco-navy to-deco-midnight
           border border-deco-gold/40
           shadow-deco
+          overflow-hidden
         `}
         style={{
           transform: `rotate(${rotation}deg)`,
           animationDelay: `${animationDelay}ms`,
         }}
       >
-        {/* Art Deco pattern on back */}
-        <div className="absolute inset-1 rounded border border-deco-gold/20">
-          <div
-            className="w-full h-full rounded"
-            style={{
-              backgroundImage: `
-                repeating-linear-gradient(
-                  45deg,
-                  transparent,
-                  transparent 3px,
-                  rgba(212, 175, 55, 0.1) 3px,
-                  rgba(212, 175, 55, 0.1) 6px
-                )
-              `,
-            }}
-          />
-          {/* Centre ornament */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-6 h-6 border border-deco-gold/30 rotate-45" />
+        {cardBackImage ? (
+          <img src={cardBackImage} alt="" className="absolute inset-0 w-full h-full object-cover rounded-lg" />
+        ) : (
+          /* Art Deco pattern on back */
+          <div className="absolute inset-1 rounded border border-deco-gold/20">
+            <div
+              className="w-full h-full rounded"
+              style={{
+                backgroundImage: `
+                  repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 3px,
+                    rgba(212, 175, 55, 0.1) 3px,
+                    rgba(212, 175, 55, 0.1) 6px
+                  )
+                `,
+              }}
+            />
+            {/* Centre ornament */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-6 h-6 border border-deco-gold/30 rotate-45" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     );
   }

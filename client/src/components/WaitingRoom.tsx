@@ -11,6 +11,8 @@ interface WaitingRoomProps {
   onPlayerNameChange: (name: string) => void;
   avatarUrl: string | null;
   onAvatarChange: (dataUrl: string) => void;
+  cardBackUrl: string | null;
+  onCardBackChange: (dataUrl: string) => void;
   players?: GameState['players'];
 }
 
@@ -41,6 +43,33 @@ function resizeImage(file: File): Promise<string> {
   });
 }
 
+function resizeCardBack(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 120;
+      canvas.height = 168;
+      const ctx = canvas.getContext('2d')!;
+      // Crop to 5:7 aspect ratio from centre, then draw at 120×168
+      const targetRatio = 120 / 168;
+      const imgRatio = img.width / img.height;
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      if (imgRatio > targetRatio) {
+        sw = img.height * targetRatio;
+        sx = (img.width - sw) / 2;
+      } else {
+        sh = img.width / targetRatio;
+        sy = (img.height - sh) / 2;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, 120, 168);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 function WaitingRoom({
   roomId,
   myPosition,
@@ -51,15 +80,25 @@ function WaitingRoom({
   onPlayerNameChange,
   avatarUrl,
   onAvatarChange,
+  cardBackUrl,
+  onCardBackChange,
   players,
 }: WaitingRoomProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cardBackInputRef = useRef<HTMLInputElement>(null);
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const dataUrl = await resizeImage(file);
     onAvatarChange(dataUrl);
+  };
+
+  const handleCardBackSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await resizeCardBack(file);
+    onCardBackChange(dataUrl);
   };
 
   return (
@@ -135,6 +174,34 @@ function WaitingRoom({
                 {positionData.find(p => p.position === myPosition)?.name}
               </span>
             </p>
+
+            {/* Card back upload */}
+            <div className="mt-3 flex items-center justify-center gap-3">
+              <button
+                onClick={() => cardBackInputRef.current?.click()}
+                className="relative w-[40px] h-[56px] rounded border-2 border-deco-gold/40 hover:border-deco-gold transition-colors overflow-hidden bg-deco-navy flex items-center justify-center shrink-0 group"
+                title="Click to set custom card back"
+              >
+                {cardBackUrl ? (
+                  <img src={cardBackUrl} alt="Card back" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-deco-navy to-deco-midnight flex items-center justify-center">
+                    <div className="w-3 h-3 border border-deco-gold/30 rotate-45" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="text-white text-[8px]">Edit</span>
+                </div>
+              </button>
+              <input
+                ref={cardBackInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCardBackSelect}
+                className="hidden"
+              />
+              <span className="text-xs text-deco-cream/50">Custom card back</span>
+            </div>
           </div>
         )}
 

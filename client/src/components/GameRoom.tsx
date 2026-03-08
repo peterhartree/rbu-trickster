@@ -11,6 +11,7 @@ import SAYCReference from './SAYCReference';
 import HandHistory from './HandHistory';
 import TurnIndicator from './TurnIndicator';
 import HandReview from './HandReview';
+import TrollAd from './TrollAd';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 
 // In production (same domain), use relative URL; in dev, use localhost
@@ -69,6 +70,8 @@ function GameRoom() {
   const [reviewableTrick, setReviewableTrick] = useState<Trick | null>(null);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('bridge_player_name') || '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => localStorage.getItem('bridge_player_avatar'));
+  const [cardBackUrl, setCardBackUrl] = useState<string | null>(() => localStorage.getItem('bridge_player_card_back'));
+  const [showAdOverlay, setShowAdOverlay] = useState(false);
   const { cardPlayed: playCardSound, trumpPlayed: playTrumpSound, yourTurn: playYourTurnSound, trickWon: playTrickWonSound, bidPlaced: playBidSound } = useSoundEffects();
 
   useEffect(() => {
@@ -104,6 +107,12 @@ function GameRoom() {
           const savedAvatar = localStorage.getItem('bridge_player_avatar');
           if (savedAvatar) {
             newSocket.emit('player:set-avatar', { roomId, avatarUrl: savedAvatar });
+          }
+
+          // Send card back if we have one stored
+          const savedCardBack = localStorage.getItem('bridge_player_card_back');
+          if (savedCardBack) {
+            newSocket.emit('player:set-card-back', { roomId, cardBackUrl: savedCardBack });
           }
 
           // If game is in progress, restore state immediately from join response
@@ -240,6 +249,22 @@ function GameRoom() {
       }
     });
 
+    newSocket.on('player:card-back-updated', (data: any) => {
+      if (data.position && data.cardBackUrl) {
+        const pos = data.position as Position;
+        setGameState((prev) => {
+          if (!prev?.players) return prev;
+          return {
+            ...prev,
+            players: {
+              ...prev.players,
+              [pos]: { ...prev.players[pos], cardBackUrl: data.cardBackUrl },
+            },
+          };
+        });
+      }
+    });
+
     newSocket.on('room:error', (data: any) => {
       setError(data.message);
     });
@@ -290,6 +315,13 @@ function GameRoom() {
     }
   }, [gameState?.currentBidder, gameState?.currentPlayer, myPosition, playYourTurnSound, gameState?.phase, gameState?.cardPlay?.dummy, gameState?.contract?.declarer]);
 
+  // Show troll ad when a new hand starts (phase becomes bidding)
+  useEffect(() => {
+    if (gameState?.phase === 'bidding') {
+      setShowAdOverlay(true);
+    }
+  }, [gameState?.phase]);
+
   const handleStartGame = () => {
     if (socket && roomId) {
       socket.emit('game:start', { roomId });
@@ -327,6 +359,14 @@ function GameRoom() {
     localStorage.setItem('bridge_player_avatar', dataUrl);
     if (socket && roomId) {
       socket.emit('player:set-avatar', { roomId, avatarUrl: dataUrl });
+    }
+  };
+
+  const handleCardBackChange = (dataUrl: string) => {
+    setCardBackUrl(dataUrl);
+    localStorage.setItem('bridge_player_card_back', dataUrl);
+    if (socket && roomId) {
+      socket.emit('player:set-card-back', { roomId, cardBackUrl: dataUrl });
     }
   };
 
@@ -370,6 +410,8 @@ function GameRoom() {
         onPlayerNameChange={handlePlayerNameChange}
         avatarUrl={avatarUrl}
         onAvatarChange={handleAvatarChange}
+        cardBackUrl={cardBackUrl}
+        onCardBackChange={handleCardBackChange}
         players={gameState?.players}
       />
     );
@@ -489,6 +531,9 @@ function GameRoom() {
           />
         </footer>
       )}
+
+      {/* Troll Ad Overlay */}
+      <TrollAd isOpen={showAdOverlay} onClose={() => setShowAdOverlay(false)} />
 
       {/* SAYC Reference Modal */}
       <SAYCReference isOpen={showSAYCReference} onClose={() => setShowSAYCReference(false)} />

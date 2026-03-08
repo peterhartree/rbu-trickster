@@ -190,6 +190,7 @@ export interface Player {
   connected: boolean;
   name?: string;        // Player display name
   avatarUrl?: string;   // Base64 data URL for profile picture (80×80 JPEG)
+  cardBackUrl?: string; // Base64 data URL for custom card back (120×168 JPEG)
 }
 
 export interface GameState {
