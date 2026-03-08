@@ -4,7 +4,6 @@ const AD_IMAGES = [
   '/ads/iq-test-1.png',
   '/ads/iq-test-2.png',
   '/ads/weight-loss-1.png',
-  '/ads/weight-loss-2.png',
   '/ads/combo.png',
 ];
 

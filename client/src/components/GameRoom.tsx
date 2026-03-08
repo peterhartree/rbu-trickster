@@ -22,8 +22,15 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
 const PLAYER_ID_KEY = 'bridge_player_id';
 const SESSION_KEY_PREFIX = 'bridge_session_';
 
+// Debug mode: ?debug in URL gives each tab a unique player identity
+const IS_DEBUG = new URLSearchParams(window.location.search).has('debug');
+
 // Get or create a persistent player ID
 function getOrCreatePlayerId(): string {
+  // In debug mode, always create a fresh ID so each tab is a separate player
+  if (IS_DEBUG) {
+    return `debug-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
   let playerId = localStorage.getItem(PLAYER_ID_KEY);
   if (!playerId) {
     playerId = `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -77,8 +84,8 @@ function GameRoom() {
   useEffect(() => {
     if (!roomId) return;
 
-    // Get stored session or create new player ID
-    const storedSession = getStoredSession(roomId);
+    // Get stored session or create new player ID (skip stored session in debug mode)
+    const storedSession = IS_DEBUG ? null : getStoredSession(roomId);
     const playerId = storedSession?.playerId || getOrCreatePlayerId();
 
     const newSocket = io(SOCKET_URL);
@@ -97,7 +104,7 @@ function GameRoom() {
 
           // Store players in gameState so WaitingRoom can display avatars
           if (response.players) {
-            setGameState((prev) => ({ ...prev, players: response.players }));
+            setGameState((prev) => ({ ...prev, phase: prev?.phase || 'waiting' as any, players: response.players }));
           }
 
           // Store session for reconnection
@@ -197,7 +204,6 @@ function GameRoom() {
       if (data.sessionScore) {
         setSessionScore(data.sessionScore);
       }
-      setShowAdOverlay(true);
     });
 
     newSocket.on('session:complete', (data: any) => {
@@ -317,6 +323,12 @@ function GameRoom() {
     }
   }, [gameState?.currentBidder, gameState?.currentPlayer, myPosition, playYourTurnSound, gameState?.phase, gameState?.cardPlay?.dummy, gameState?.contract?.declarer]);
 
+  // Show troll ad when hand completes (covers both played-out and passed-out hands)
+  useEffect(() => {
+    if (gameState?.phase === 'complete') {
+      setShowAdOverlay(true);
+    }
+  }, [gameState?.phase]);
 
   const handleStartGame = () => {
     if (socket && roomId) {
@@ -479,7 +491,7 @@ function GameRoom() {
       <main className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2">
         {gameState.phase === 'complete' ? (
           /* Hand Review - full width when complete */
-          <div className="md:col-span-12">
+          <div className="md:col-span-12 min-h-0 overflow-hidden">
             <HandReview
               gameState={gameState}
               sessionScore={sessionScore}

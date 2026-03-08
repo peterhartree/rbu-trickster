@@ -48,8 +48,8 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
 
   const renderHand = (position: Position, cards: CardType[]) => {
     return (
-      <div className="bg-deco-midnight/80 rounded-lg border border-deco-gold/30 p-3">
-        <h4 className="text-sm font-display font-bold text-deco-gold mb-2 text-center">
+      <div className="bg-deco-midnight/80 rounded-lg border border-deco-gold/30 px-2 py-1.5">
+        <h4 className="text-xs font-display font-bold text-deco-gold mb-1 text-center">
           {getDisplayName(position)}
           {contract?.declarer === position && (
             <span className="ml-2 text-xs bg-deco-gold text-deco-navy px-2 py-0.5 rounded">
@@ -77,69 +77,64 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
   };
 
   return (
-    <div className="h-full min-h-[500px] flex flex-col bg-deco-navy rounded-lg border border-deco-gold/20 overflow-hidden">
+    <div className="h-full flex flex-col bg-deco-navy rounded-lg border border-deco-gold/20 overflow-hidden">
       {/* Header */}
-      <div className="shrink-0 p-4 bg-deco-midnight border-b border-deco-gold/20 text-center">
-        <div className="flex justify-center items-center space-x-3 mb-2">
-          <div className="w-8 h-px bg-gradient-to-r from-transparent to-deco-gold/50" />
-          <div className="w-3 h-3 bg-deco-gold rotate-45" />
-          <div className="w-8 h-px bg-gradient-to-l from-transparent to-deco-gold/50" />
-        </div>
-        <h2 className="text-2xl font-display font-bold text-deco-gold">Hand Review</h2>
+      <div className="shrink-0 px-4 py-2 bg-deco-midnight border-b border-deco-gold/20 text-center">
+        <h2 className="text-lg font-display font-bold text-deco-gold">Hand Review</h2>
 
-        {/* Contract and Result */}
+        {/* Contract and Result - inline */}
         {contract && (
-          <div className="mt-3 space-y-1">
-            <p className="text-deco-cream">
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-0.5 text-sm">
+            <span className="text-deco-cream">
               Contract:{' '}
-              <span className="font-display font-bold text-deco-gold text-lg">
+              <span className="font-display font-bold text-deco-gold">
                 {contract.level}
                 {strainSymbols[contract.strain]}
                 {contract.doubled && ' X'}
                 {contract.redoubled && ' XX'}
               </span>
-              <span className="text-deco-cream/60 ml-2">by {getDisplayName(contract.declarer)}</span>
-            </p>
+              <span className="text-deco-cream/60 ml-1">by {getDisplayName(contract.declarer)}</span>
+            </span>
             {result && (
-              <p className="text-deco-cream">
+              <span className="text-deco-cream">
                 Result:{' '}
-                <span className={`font-display font-bold text-lg ${
+                <span className={`font-display font-bold ${
                   result.tricksMade >= 6 + contract.level ? 'text-green-400' : 'text-deco-heart'
                 }`}>
                   {result.tricksMade >= 6 + contract.level ? 'Made ' : 'Down '}
                   {Math.abs(result.tricksMade - (6 + contract.level))}
                 </span>
-                <span className="text-deco-cream/60 ml-2">({result.tricksMade} tricks)</span>
-              </p>
+                <span className="text-deco-cream/60 ml-1">({result.tricksMade} tricks)</span>
+              </span>
             )}
             {score && (
-              <p className="text-deco-cream mt-2">
+              <span className="text-deco-cream">
                 Score:{' '}
-                <span className={`font-display font-bold text-lg ${
+                <span className={`font-display font-bold ${
                   score.totalScore >= 0 ? 'text-deco-gold' : 'text-deco-heart'
                 }`}>
                   {score.totalScore >= 0 ? '+' : ''}{score.totalScore}
                 </span>
-              </p>
+              </span>
             )}
           </div>
         )}
       </div>
 
       {/* Hands display - compass layout */}
-      <div className="flex-1 p-4 overflow-y-auto">
-        <div className="grid grid-rows-3 gap-3 max-w-2xl mx-auto">
+      <div className="flex-1 min-h-0 p-2 overflow-y-auto">
+        <div className="grid grid-rows-3 gap-2 max-w-2xl mx-auto">
           {/* North */}
           <div className="flex justify-center">
             {renderHand(Pos.NORTH, originalHands[Pos.NORTH])}
           </div>
 
           {/* West and East */}
-          <div className="grid grid-cols-3 gap-3 items-center">
+          <div className="grid grid-cols-3 gap-2 items-center">
             <div>{renderHand(Pos.WEST, originalHands[Pos.WEST])}</div>
             <div className="flex items-center justify-center">
-              <div className="w-16 h-16 bg-deco-accent/30 rounded-full border-2 border-deco-gold/30 flex items-center justify-center">
-                <span className="text-2xl text-deco-gold">♠</span>
+              <div className="w-10 h-10 bg-deco-accent/30 rounded-full border-2 border-deco-gold/30 flex items-center justify-center">
+                <span className="text-lg text-deco-gold">♠</span>
               </div>
             </div>
             <div>{renderHand(Pos.EAST, originalHands[Pos.EAST])}</div>
@@ -153,13 +148,13 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
       </div>
 
       {/* Footer with Session Summary and Actions */}
-      <div className="shrink-0 p-4 bg-deco-midnight border-t border-deco-gold/20">
+      <div className="shrink-0 px-4 py-2 bg-deco-midnight border-t border-deco-gold/20">
         {/* Session Summary */}
         {sessionScore && (
-          <div className="mb-4">
+          <div className="mb-2">
             {/* Session complete banner */}
             {isSessionComplete && (
-              <div className="mb-4 p-4 bg-deco-gold/10 rounded-lg border border-deco-gold/30 text-center">
+              <div className="mb-2 p-2 bg-deco-gold/10 rounded-lg border border-deco-gold/30 text-center">
                 <p className="text-lg font-display font-bold text-deco-gold mb-1">
                   Session Complete!
                 </p>
@@ -176,24 +171,24 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
             )}
 
             {/* Session totals */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className={`p-3 rounded-lg border ${
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className={`p-2 rounded-lg border ${
                 sessionScore.nsTotal >= sessionScore.ewTotal
                   ? 'bg-deco-gold/10 border-deco-gold/30'
                   : 'bg-deco-navy/50 border-deco-gold/10'
               }`}>
                 <p className="text-xs text-deco-cream/60 uppercase tracking-wider">North-South</p>
-                <p className="text-2xl font-display font-bold text-deco-gold">
+                <p className="text-xl font-display font-bold text-deco-gold">
                   {sessionScore.nsTotal}
                 </p>
               </div>
-              <div className={`p-3 rounded-lg border ${
+              <div className={`p-2 rounded-lg border ${
                 sessionScore.ewTotal > sessionScore.nsTotal
                   ? 'bg-deco-gold/10 border-deco-gold/30'
                   : 'bg-deco-navy/50 border-deco-gold/10'
               }`}>
                 <p className="text-xs text-deco-cream/60 uppercase tracking-wider">East-West</p>
-                <p className="text-2xl font-display font-bold text-deco-gold">
+                <p className="text-xl font-display font-bold text-deco-gold">
                   {sessionScore.ewTotal}
                 </p>
               </div>
@@ -201,7 +196,7 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
 
             {/* Per-hand breakdown */}
             {sessionScore.handScores.length > 0 && (
-              <div className="mb-4">
+              <div className="mb-2">
                 <p className="text-xs text-deco-cream/60 uppercase tracking-wider mb-2">Hand scores</p>
                 <div className="flex gap-2">
                   {sessionScore.handScores.map((handScore, i) => (
@@ -225,14 +220,14 @@ function HandReview({ gameState, sessionScore, onNewHand, onNewSession }: HandRe
         {isSessionComplete ? (
           <button
             onClick={onNewSession}
-            className="w-full bg-deco-gold hover:bg-deco-gold-light text-deco-navy font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-[1.02] shadow-gold"
+            className="w-full bg-deco-gold hover:bg-deco-gold-light text-deco-navy font-semibold py-2 px-6 rounded-lg transition-all duration-200 hover:scale-[1.02] shadow-gold"
           >
             Start New Session
           </button>
         ) : (
           <button
             onClick={onNewHand}
-            className="w-full bg-deco-gold hover:bg-deco-gold-light text-deco-navy font-semibold py-3 px-6 rounded-lg transition-all duration-200 hover:scale-[1.02] shadow-gold"
+            className="w-full bg-deco-gold hover:bg-deco-gold-light text-deco-navy font-semibold py-2 px-6 rounded-lg transition-all duration-200 hover:scale-[1.02] shadow-gold"
           >
             Deal Next Hand {handsRemaining > 0 && `(${handsRemaining} remaining)`}
           </button>
