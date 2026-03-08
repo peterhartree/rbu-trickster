@@ -135,6 +135,7 @@ function GameRoom() {
 
     newSocket.on('game:started', (state: Partial<GameState>) => {
       setGameState(state);
+      setShowAdOverlay(true);
       // Update session from game state if available
       if (state.session) {
         setSessionScore(state.session);
@@ -196,6 +197,7 @@ function GameRoom() {
       if (data.sessionScore) {
         setSessionScore(data.sessionScore);
       }
+      setShowAdOverlay(true);
     });
 
     newSocket.on('session:complete', (data: any) => {
@@ -315,12 +317,6 @@ function GameRoom() {
     }
   }, [gameState?.currentBidder, gameState?.currentPlayer, myPosition, playYourTurnSound, gameState?.phase, gameState?.cardPlay?.dummy, gameState?.contract?.declarer]);
 
-  // Show troll ad when a new hand starts (phase becomes bidding)
-  useEffect(() => {
-    if (gameState?.phase === 'bidding') {
-      setShowAdOverlay(true);
-    }
-  }, [gameState?.phase]);
 
   const handleStartGame = () => {
     if (socket && roomId) {
