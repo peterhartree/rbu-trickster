@@ -90,13 +90,6 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
       {/* Bid grid - 5 columns (C, D, H, S, NT) × 7 rows (levels 1–7) */}
       <div className="flex-1 p-2 overflow-y-auto">
         <div className="grid grid-cols-5 gap-0.5">
-          {/* Header row - strains */}
-          {strainOrder.map((strain) => (
-            <div key={`header-${strain}`} className={`text-center text-[10px] font-display font-semibold pb-0.5 ${suitColors[strain]}`}>
-              {suitSymbols[strain]}
-            </div>
-          ))}
-
           {/* Level rows */}
           {levels.map((level) => (
             strainOrder.map((strain) => {
@@ -107,7 +100,7 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
                   onClick={valid ? () => handleBid(level, strain) : undefined}
                   disabled={!valid}
                   className={`
-                    py-1 rounded text-xs font-display font-bold transition-all border
+                    py-2.5 rounded text-base font-display font-bold transition-all border
                     ${suitColors[strain]}
                     ${valid
                       ? 'bg-deco-cream border-deco-gold/30 hover:bg-deco-gold-light hover:border-deco-gold hover:scale-105 shadow-sm cursor-pointer'
@@ -129,7 +122,7 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
           onClick={isMyTurn && isSpecialValid('PASS') ? handlePass : undefined}
           disabled={!isMyTurn || !isSpecialValid('PASS')}
           className={`
-            py-2 text-sm font-semibold rounded transition-all border
+            py-2.5 text-base font-semibold rounded transition-all border
             ${isMyTurn && isSpecialValid('PASS')
               ? 'bg-deco-navy text-deco-cream border-deco-gold/30 hover:bg-deco-accent hover:border-deco-gold/50 cursor-pointer'
               : 'bg-deco-navy/50 text-deco-cream/50 border-deco-gold/10 opacity-30'
@@ -142,7 +135,7 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
           onClick={isMyTurn && isSpecialValid('DOUBLE') ? handleDouble : undefined}
           disabled={!isMyTurn || !isSpecialValid('DOUBLE')}
           className={`
-            py-2 text-sm font-semibold rounded transition-all border
+            py-2.5 text-base font-semibold rounded transition-all border
             ${isMyTurn && isSpecialValid('DOUBLE')
               ? 'bg-deco-heart text-deco-cream border-deco-heart hover:brightness-110 cursor-pointer'
               : 'bg-deco-heart/30 text-deco-cream/50 border-deco-heart/30 opacity-30'
@@ -155,7 +148,7 @@ function BiddingPanel({ gameState, myPosition, onPlaceBid }: BiddingPanelProps) 
           onClick={isMyTurn && isSpecialValid('REDOUBLE') ? handleRedouble : undefined}
           disabled={!isMyTurn || !isSpecialValid('REDOUBLE')}
           className={`
-            py-2 text-sm font-semibold rounded transition-all border
+            py-2.5 text-base font-semibold rounded transition-all border
             ${isMyTurn && isSpecialValid('REDOUBLE')
               ? 'bg-deco-gold text-deco-navy border-deco-gold hover:brightness-110 cursor-pointer'
               : 'bg-deco-gold/30 text-deco-navy/50 border-deco-gold/30 opacity-30'
