@@ -187,7 +187,7 @@ const sizeClasses = {
     suit: 'text-[10px]',
     pip: 'top-0.5 left-1',
     pipBottom: 'bottom-0.5 right-1',
-    centreSuit: 'text-xl',
+    centreSuit: 'text-lg',
   },
   md: {
     card: 'w-14 h-20',

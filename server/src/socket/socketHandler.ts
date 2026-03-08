@@ -26,9 +26,9 @@ export function setupSocketHandlers(io: Server) {
     });
 
     // Join room
-    socket.on(SOCKET_EVENTS.ROOM_JOIN, ({ roomId, playerId, playerName }, callback) => {
+    socket.on(SOCKET_EVENTS.ROOM_JOIN, ({ roomId, playerId, playerName, preferredPosition }, callback) => {
       try {
-        const { position, players, playerId: assignedPlayerId, gameInProgress } = gameManager.joinRoom(roomId, socket.id, playerId, playerName);
+        const { position, players, playerId: assignedPlayerId, gameInProgress } = gameManager.joinRoom(roomId, socket.id, playerId, playerName, preferredPosition);
         socket.join(roomId);
 
         // Notify joiner - include players count, their persistent playerId, and game state if reconnecting

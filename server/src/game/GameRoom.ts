@@ -46,7 +46,7 @@ export class GameRoom {
     return this.gameState.phase !== 'waiting';
   }
 
-  addPlayer(socketId: string, playerId?: string, playerName?: string): Position {
+  addPlayer(socketId: string, playerId?: string, playerName?: string, preferredPosition?: Position): Position {
     const positions: Position[] = [Pos.NORTH, Pos.EAST, Pos.SOUTH, Pos.WEST];
 
     // If playerId provided, check if this player was already in the room (reconnection)
@@ -74,6 +74,21 @@ export class GameRoom {
 
     // Generate a new playerId if not provided
     const newPlayerId = playerId || `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // If preferred position requested and available, use it
+    if (preferredPosition && !this.players[preferredPosition]) {
+      const player: Player = {
+        id: newPlayerId,
+        socketId,
+        position: preferredPosition,
+        connected: true,
+        name: playerName,
+      };
+      this.players[preferredPosition] = player;
+      this.gameState.players[preferredPosition] = player;
+      this.lastActivity = Date.now();
+      return preferredPosition;
+    }
 
     // First, try to find an empty position
     for (const position of positions) {

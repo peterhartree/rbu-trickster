@@ -23,7 +23,11 @@ const PLAYER_ID_KEY = 'bridge_player_id';
 const SESSION_KEY_PREFIX = 'bridge_session_';
 
 // Debug mode: ?debug in URL gives each tab a unique player identity
-const IS_DEBUG = new URLSearchParams(window.location.search).has('debug');
+// Optional params: ?debug&name=Alice&pos=N (position: N/E/S/W)
+const DEBUG_PARAMS = new URLSearchParams(window.location.search);
+const IS_DEBUG = DEBUG_PARAMS.has('debug');
+const DEBUG_NAME = DEBUG_PARAMS.get('name');
+const DEBUG_POSITION = DEBUG_PARAMS.get('pos')?.toUpperCase() as 'N' | 'E' | 'S' | 'W' | undefined;
 
 // Get or create a persistent player ID
 function getOrCreatePlayerId(): string {
@@ -75,7 +79,7 @@ function GameRoom() {
   const [sessionScore, setSessionScore] = useState<SessionScore | null>(null);
   const [lastCompletedTrick, setLastCompletedTrick] = useState<Trick | null>(null);
   const [reviewableTrick, setReviewableTrick] = useState<Trick | null>(null);
-  const [playerName, setPlayerName] = useState(() => localStorage.getItem('bridge_player_name') || '');
+  const [playerName, setPlayerName] = useState(() => (IS_DEBUG && DEBUG_NAME) || localStorage.getItem('bridge_player_name') || '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => localStorage.getItem('bridge_player_avatar'));
   const [cardBackUrl, setCardBackUrl] = useState<string | null>(() => localStorage.getItem('bridge_player_card_back'));
   const [showAdOverlay, setShowAdOverlay] = useState(false);
@@ -96,8 +100,10 @@ function GameRoom() {
       console.log('Connected to server');
 
       // Join the room with our persistent player ID
-      const savedName = localStorage.getItem('bridge_player_name') || '';
-      newSocket.emit('room:join', { roomId, playerId, playerName: savedName }, (response: any) => {
+      const savedName = (IS_DEBUG && DEBUG_NAME) || localStorage.getItem('bridge_player_name') || '';
+      const joinPayload: any = { roomId, playerId, playerName: savedName };
+      if (IS_DEBUG && DEBUG_POSITION) joinPayload.preferredPosition = DEBUG_POSITION;
+      newSocket.emit('room:join', joinPayload, (response: any) => {
         if (response.success) {
           setMyPosition(response.position);
           setPlayerCount(Object.keys(response.players || {}).length);
@@ -322,6 +328,23 @@ function GameRoom() {
       playYourTurnSound();
     }
   }, [gameState?.currentBidder, gameState?.currentPlayer, myPosition, playYourTurnSound, gameState?.phase, gameState?.cardPlay?.dummy, gameState?.contract?.declarer]);
+
+  // Update browser tab title when it's your turn
+  useEffect(() => {
+    if (!gameState || !myPosition) return;
+    const currentTurn = gameState.phase === 'bidding' ? gameState.currentBidder : gameState.currentPlayer;
+    const dummyPosition = gameState.cardPlay?.dummy;
+    const declarerPosition = gameState.contract?.declarer;
+    const iAmDummy = gameState.phase === 'playing' && myPosition === dummyPosition && myPosition !== declarerPosition;
+
+    const isMyTurn = !iAmDummy && (
+      currentTurn === myPosition ||
+      (gameState.phase === 'playing' && myPosition === declarerPosition && currentTurn === dummyPosition)
+    );
+
+    document.title = isMyTurn ? 'Your turn!' : 'RBU Trickster';
+    return () => { document.title = 'RBU Trickster'; };
+  }, [gameState?.currentBidder, gameState?.currentPlayer, myPosition, gameState?.phase, gameState?.cardPlay?.dummy, gameState?.contract?.declarer]);
 
   // Show troll ad when hand completes (covers both played-out and passed-out hands)
   useEffect(() => {
