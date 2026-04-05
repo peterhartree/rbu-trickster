@@ -53,6 +53,24 @@ export function setupSocketHandlers(io: Server) {
           io.to(roomId).emit('player:updated', { players: sanitisedPlayers });
         }
 
+        // Auto-start when all 4 players have joined
+        if (!gameInProgress && room && Object.keys(players).length === 4) {
+          try {
+            gameManager.startGame(roomId);
+            for (const pos of Object.keys(room.players)) {
+              const playerPosition = pos as Position;
+              const player = room.players[playerPosition];
+              if (player) {
+                const filteredState = room.getStateForPlayer(playerPosition);
+                io.to(player.socketId).emit(SOCKET_EVENTS.GAME_STARTED, filteredState);
+              }
+            }
+            console.log(`🃏 Game auto-started in room ${roomId}`);
+          } catch (startError) {
+            console.error(`Failed to auto-start game in room ${roomId}:`, startError);
+          }
+        }
+
         console.log(`👤 Player joined room ${roomId} as ${position} (playerId: ${assignedPlayerId}, reconnecting: ${gameInProgress})`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to join room';
